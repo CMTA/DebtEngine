@@ -57,17 +57,43 @@ contract DebtEngine is IDebtEngine, AccessControl, DebtEngineInvariantStorage {
 
     /* ============ RESTRICTED-FACING FUNCTIONS ============ */
     /**
-    * @notice Function to set the debt for a given smart contract (only admin can call)
+    * @notice Function to set the debt for a given smart contract
     */
-    function setDebt(address smartContract_, DebtBase calldata debt_) external onlyRole(DEBT_ROLE) {
+    function setDebt(address smartContract_, DebtBase calldata debt_) external onlyRole(DEBT_MANAGER_ROLE) {
         _debts[smartContract_] = debt_;
     }
 
     /*
-    * @notice Function to set the credit events for a given smart contract (only admin can call)
+    * @notice Function to set the credit events for a given smart contract
     */ 
-    function setCreditEvents(address smartContract_, CreditEvents calldata creditEvents_) external onlyRole(CREDIT_EVENTS_ROLE) {
+    function setCreditEvents(address smartContract_, CreditEvents calldata creditEvents_) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
         _creditEvents[smartContract_] = creditEvents_;
+    }
+
+    /*
+    * @notice Batch version of {setCreditEventsBatch}
+    */ 
+    function setCreditEventsBatch(address[] calldata smartContracts, CreditEvents[] calldata creditEventsList) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
+        if (smartContracts.length != creditEventsList.length) {
+            revert InvalidInputLength();
+        }
+
+        for (uint256 i = 0; i < smartContracts.length; i++) {
+            _creditEvents[smartContracts[i]] = creditEventsList[i];
+        }
+    }
+
+    /*
+    * @notice Batch version of {setDebtBatch}
+    */ 
+    function setDebtBatch(address[] calldata smartContracts, DebtBase[] calldata debts) external onlyRole(DEBT_MANAGER_ROLE) {
+        if (smartContracts.length != debts.length) {
+            revert InvalidInputLength();
+        }
+
+        for (uint256 i = 0; i < smartContracts.length; i++) {
+            _debts[smartContracts[i]] = debts[i];
+        }
     }
 
     /* ============ ACCESS CONTROL ============ */

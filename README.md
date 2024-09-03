@@ -1,11 +1,8 @@
 # Debt Engine
 
+[TOC]
+
 This repository includes the DebtEngine contract for the [CMTAT](https://github.com/CMTA/CMTAT) token.
-
-- The CMTAT version used is the version [v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0)
-- The OpenZeppelin version used is the version [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.0.2)
-
-The CMTAT contracts and the OpenZeppelin library are included as a submodule of the present repository.
 
 The *debtEngine* allows to define `debt` and `credit events` for several different contracts.
 
@@ -53,11 +50,61 @@ interface IDebtEngine is IDebtGlobal {
 }
 ```
 
+## Schema
+
+### Inheritance
+
+![surya_inheritance_DebtEngine.sol](./doc/surya/surya_inheritance/surya_inheritance_DebtEngine.sol.png)
+
+### Graph
+
+![surya_graph_DebtEngine.sol](./doc/surya/surya_graph/surya_graph_DebtEngine.sol.png)
+
+## Surya Description Report
+
+### Contracts Description Table
+
+### Legend
+
+| Symbol | Meaning                   |
+| :----: | ------------------------- |
+|   🛑    | Function can modify state |
+|   💵    | Function is payable       |
+
+## Dependencies
+
+The toolchain includes the following components, where the versions are the latest ones that we tested:
+
+- Foundry
+- Solidity 0.8.26 (via solc-js)
+- OpenZeppelin Contracts (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.0.2)
+- Tests
+  - [CMTAT v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0)
+  - OpenZeppelin Contracts Upgradeable(submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
+
+The CMTAT contracts and the OpenZeppelin library are included as a submodule of the present repository.
+
 ## Tools
+
+### Prettier
+
+```bash
+npx prettier --write --plugin=prettier-plugin-solidity 'src/**/*.sol'
+```
+
+### Slither
+
+```bash
+slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > slither-report.md
+```
+
+### Surya
+
+See [./doc/script](./doc/script)
 
 ### Foundry
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.
 
 Foundry consists of:
 
@@ -66,55 +113,67 @@ Foundry consists of:
 -   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
 -   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-### Documentation
+#### Documentation
 
-https://book.getfoundry.sh/
+[https://book.getfoundry.sh/](https://book.getfoundry.sh/)
 
-### Usage
+#### Usage
 
-#### Build
+##### Coverage
+
+```bash
+$ forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+```
+
+##### Gas report
+
+```bash
+$ forge test --gas-report
+```
+
+##### Build
 
 ```shell
 $ forge build
 ```
 
-#### Test
+##### Test
 
 ```shell
 $ forge test
 ```
 
-#### Format
+##### Format
 
 ```shell
 $ forge fmt
 ```
 
-#### Gas Snapshots
+##### Gas Snapshots
 
 ```shell
 $ forge snapshot
 ```
 
-#### Anvil
+##### Anvil
 
 ```shell
 $ anvil
 ```
 
-#### Deploy
+##### Deploy
 
 ```shell
 $ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-#### Cast
+##### Cast
 
 ```shell
 $ cast <subcommand>
 ```
 
-#### Help
+##### Help
 
 ```shell
 $ forge --help

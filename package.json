@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "prettier-plugin-solidity": "^1.4.1",
+    "surya": "^0.4.11"
+  }
+}
