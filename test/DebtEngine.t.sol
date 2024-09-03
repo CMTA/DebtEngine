@@ -8,7 +8,12 @@ import {IDebtGlobal} from "CMTAT/interfaces/IDebtGlobal.sol";
 import "../src/DebtEngineInvariantStorage.sol";
 import "OZ/access/AccessControl.sol";
 import "CMTAT/CMTAT_STANDALONE.sol";
-contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariantStorage {
+contract DebtEngineTest is
+    Test,
+    AccessControl,
+    IDebtGlobal,
+    DebtEngineInvariantStorage
+{
     DebtEngine private debtEngine;
     address private admin = address(0x1);
     address private attacker = address(0x2);
@@ -19,78 +24,93 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
     CMTAT_STANDALONE cmtat;
 
     // Sample data for DebtBase and CreditEvents
-    DebtEngine.DebtBase private debtSample = DebtBase({
-        interestRate: 5,
-        parValue: 1000,
-        guarantor: "Guarantor A",
-        bondHolder: "Bond Holder B",
-        maturityDate: "2025-01-01",
-        interestScheduleFormat: "Annual",
-        interestPaymentDate: "2024-12-31",
-        dayCountConvention: "30/360",
-        businessDayConvention: "Modified Following",
-        publicHolidaysCalendar: "US",
-        issuanceDate: "2023-01-01",
-        couponFrequency: "Semi-Annual"
-    });
+    DebtEngine.DebtBase private debtSample =
+        DebtBase({
+            interestRate: 5,
+            parValue: 1000,
+            guarantor: "Guarantor A",
+            bondHolder: "Bond Holder B",
+            maturityDate: "2025-01-01",
+            interestScheduleFormat: "Annual",
+            interestPaymentDate: "2024-12-31",
+            dayCountConvention: "30/360",
+            businessDayConvention: "Modified Following",
+            publicHolidaysCalendar: "US",
+            issuanceDate: "2023-01-01",
+            couponFrequency: "Semi-Annual"
+        });
 
-    DebtEngine.CreditEvents private creditEventSample = CreditEvents({
-        flagDefault: false,
-        flagRedeemed: true,
-        rating: "AAA"
-    });
-
+    DebtEngine.CreditEvents private creditEventSample =
+        CreditEvents({flagDefault: false, flagRedeemed: true, rating: "AAA"});
 
     // Sample data for DebtBase and CreditEvents
-    DebtEngine.DebtBase private debtSample1 = DebtBase({
-        interestRate: 5,
-        parValue: 1000,
-        guarantor: "Guarantor A",
-        bondHolder: "Bond Holder B",
-        maturityDate: "2025-01-01",
-        interestScheduleFormat: "Annual",
-        interestPaymentDate: "2024-12-31",
-        dayCountConvention: "30/360",
-        businessDayConvention: "Modified Following",
-        publicHolidaysCalendar: "US",
-        issuanceDate: "2023-01-01",
-        couponFrequency: "Semi-Annual"
-    });
+    DebtEngine.DebtBase private debtSample1 =
+        DebtBase({
+            interestRate: 5,
+            parValue: 1000,
+            guarantor: "Guarantor A",
+            bondHolder: "Bond Holder B",
+            maturityDate: "2025-01-01",
+            interestScheduleFormat: "Annual",
+            interestPaymentDate: "2024-12-31",
+            dayCountConvention: "30/360",
+            businessDayConvention: "Modified Following",
+            publicHolidaysCalendar: "US",
+            issuanceDate: "2023-01-01",
+            couponFrequency: "Semi-Annual"
+        });
 
-    DebtEngine.DebtBase private debtSample2 = DebtBase({
-        interestRate: 6,
-        parValue: 2000,
-        guarantor: "Guarantor B",
-        bondHolder: "Bond Holder C",
-        maturityDate: "2026-01-01",
-        interestScheduleFormat: "Monthly",
-        interestPaymentDate: "2025-12-31",
-        dayCountConvention: "Actual/Actual",
-        businessDayConvention: "Following",
-        publicHolidaysCalendar: "UK",
-        issuanceDate: "2024-01-01",
-        couponFrequency: "Quarterly"
-    });
+    DebtEngine.DebtBase private debtSample2 =
+        DebtBase({
+            interestRate: 6,
+            parValue: 2000,
+            guarantor: "Guarantor B",
+            bondHolder: "Bond Holder C",
+            maturityDate: "2026-01-01",
+            interestScheduleFormat: "Monthly",
+            interestPaymentDate: "2025-12-31",
+            dayCountConvention: "Actual/Actual",
+            businessDayConvention: "Following",
+            publicHolidaysCalendar: "UK",
+            issuanceDate: "2024-01-01",
+            couponFrequency: "Quarterly"
+        });
 
-    DebtEngine.CreditEvents private creditEventSample1 = CreditEvents({
-        flagDefault: false,
-        flagRedeemed: true,
-        rating: "AAA"
-    });
+    DebtEngine.CreditEvents private creditEventSample1 =
+        CreditEvents({flagDefault: false, flagRedeemed: true, rating: "AAA"});
 
-    DebtEngine.CreditEvents private creditEventSample2 = CreditEvents({
-        flagDefault: true,
-        flagRedeemed: false,
-        rating: "BBB"
-    });
+    DebtEngine.CreditEvents private creditEventSample2 =
+        CreditEvents({flagDefault: true, flagRedeemed: false, rating: "BBB"});
 
     function setUp() public {
         // Deploy the DebtEngine contract with admin role
         debtEngine = new DebtEngine(admin);
-        ICMTATConstructor.ERC20Attributes memory erc20Attributes = ICMTATConstructor.ERC20Attributes('CMTA Token', 'CMTAT', 0);
-        ICMTATConstructor.BaseModuleAttributes memory baseModuleAttributes = ICMTATConstructor.BaseModuleAttributes('CMTAT_ISIN',  'https://cmta.ch', 'CMTAT_info');
-        ICMTATConstructor.Engine memory engines =  ICMTATConstructor.Engine(IRuleEngine(AddressZero), IDebtEngine(AddressZero), IAuthorizationEngine(AddressZero), IERC1643(AddressZero));
-        cmtat = new CMTAT_STANDALONE(AddressZero, admin, erc20Attributes,  baseModuleAttributes, engines);
+        ICMTATConstructor.ERC20Attributes
+            memory erc20Attributes = ICMTATConstructor.ERC20Attributes(
+                "CMTA Token",
+                "CMTAT",
+                0
+            );
+        ICMTATConstructor.BaseModuleAttributes
+            memory baseModuleAttributes = ICMTATConstructor
+                .BaseModuleAttributes(
+                    "CMTAT_ISIN",
+                    "https://cmta.ch",
+                    "CMTAT_info"
+                );
+        ICMTATConstructor.Engine memory engines = ICMTATConstructor.Engine(
+            IRuleEngine(AddressZero),
+            IDebtEngine(AddressZero),
+            IAuthorizationEngine(AddressZero),
+            IERC1643(AddressZero)
+        );
+        cmtat = new CMTAT_STANDALONE(
+            AddressZero,
+            admin,
+            erc20Attributes,
+            baseModuleAttributes,
+            engines
+        );
     }
 
     function testSetDebtAsAdmin() public {
@@ -126,7 +146,9 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
 
         // Act
         // Verify that credit events were set correctly
-        DebtEngine.CreditEvents memory credit = debtEngine.creditEvents(testContract);
+        DebtEngine.CreditEvents memory credit = debtEngine.creditEvents(
+            testContract
+        );
         assertEq(credit.flagDefault, false);
         assertEq(credit.flagRedeemed, true);
         assertEq(credit.rating, "AAA");
@@ -143,7 +165,7 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
                 CREDIT_EVENTS_MANAGER_ROLE
             )
         );
-        debtEngine.setCreditEvents(testContract, creditEventSample) ;
+        debtEngine.setCreditEvents(testContract, creditEventSample);
     }
 
     function testCanReturnCMTATDebt() public {
@@ -164,7 +186,6 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         vm.prank(admin);
         debtEngine.setCreditEvents(address(cmtat), creditEventSample);
 
-
         vm.prank(admin);
         cmtat.setDebtEngine(debtEngine);
 
@@ -174,7 +195,7 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         assertEq(credit.flagRedeemed, true);
     }
 
-     function testSetDebtsBatchAsAdmin() public {
+    function testSetDebtsBatchAsAdmin() public {
         // Call as admin to set multiple debts
         address[] memory contracts = new address[](2);
         contracts[0] = testContract1;
@@ -224,7 +245,8 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         contracts[0] = testContract1;
         contracts[1] = testContract2;
 
-        DebtEngine.CreditEvents[] memory creditEventsList = new DebtEngine.CreditEvents[](2);
+        DebtEngine.CreditEvents[]
+            memory creditEventsList = new DebtEngine.CreditEvents[](2);
         creditEventsList[0] = creditEventSample1;
         creditEventsList[1] = creditEventSample2;
 
@@ -232,11 +254,15 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         debtEngine.setCreditEventsBatch(contracts, creditEventsList);
 
         // Verify that both credit events were set correctly
-        DebtEngine.CreditEvents memory credit1 = debtEngine.creditEvents(testContract1);
+        DebtEngine.CreditEvents memory credit1 = debtEngine.creditEvents(
+            testContract1
+        );
         assertEq(credit1.flagDefault, false);
         assertEq(credit1.rating, "AAA");
 
-        DebtEngine.CreditEvents memory credit2 = debtEngine.creditEvents(testContract2);
+        DebtEngine.CreditEvents memory credit2 = debtEngine.creditEvents(
+            testContract2
+        );
         assertEq(credit2.flagDefault, true);
         assertEq(credit2.rating, "BBB");
     }
@@ -247,7 +273,8 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         contracts[0] = testContract1;
         contracts[1] = testContract2;
 
-        DebtEngine.CreditEvents[] memory creditEventsList = new DebtEngine.CreditEvents[](2);
+        DebtEngine.CreditEvents[]
+            memory creditEventsList = new DebtEngine.CreditEvents[](2);
         creditEventsList[0] = creditEventSample1;
         creditEventsList[1] = creditEventSample2;
 
@@ -281,7 +308,8 @@ contract DebtEngineTest is Test, AccessControl, IDebtGlobal, DebtEngineInvariant
         address[] memory contracts = new address[](1);
         contracts[0] = testContract1;
 
-        DebtEngine.CreditEvents[] memory creditEventsList = new DebtEngine.CreditEvents[](2);
+        DebtEngine.CreditEvents[]
+            memory creditEventsList = new DebtEngine.CreditEvents[](2);
         creditEventsList[0] = creditEventSample1;
         creditEventsList[1] = creditEventSample2;
 

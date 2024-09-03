@@ -7,12 +7,18 @@ import "./DebtEngineInvariantStorage.sol";
 import {IDebtGlobal} from "CMTAT/interfaces/IDebtGlobal.sol";
 
 contract DebtEngine is IDebtEngine, AccessControl, DebtEngineInvariantStorage {
+    /**
+     * @notice
+     * Get the current version of the smart contract
+     */
+    string public constant VERSION = "0.1.0";
+
     // Mapping of debts and credit events to specific smart contracts
     mapping(address => DebtBase) private _debts;
     mapping(address => CreditEvents) private _creditEvents;
 
     constructor(address admin) {
-        if(admin == address(0)){
+        if (admin == address(0)) {
             revert AdminAddressZeroNotAllowed();
         }
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -23,57 +29,68 @@ contract DebtEngine is IDebtEngine, AccessControl, DebtEngineInvariantStorage {
     //////////////////////////////////////////////////////////////*/
 
     /* ============  USER-FACING FUNCTIONS ============ */
-    /** 
-    * @notice  Function to get the debt for the sender's smart contract
-    */
+    /**
+     * @notice  Function to get the debt for the sender's smart contract
+     */
     function debt() external view returns (DebtBase memory) {
         return debt(msg.sender);
     }
 
-    /** 
-    * @notice Function to get the debt for a specific smart contract
-    */
-    function debt(address smartContract_) public view returns (DebtBase memory) {
+    /**
+     * @notice Function to get the debt for a specific smart contract
+     */
+    function debt(
+        address smartContract_
+    ) public view returns (DebtBase memory) {
         DebtBase memory d = _debts[smartContract_];
         return d;
     }
 
     /**
-    * @notice Function to get the credit events for the sender's smart contract
-    */
+     * @notice Function to get the credit events for the sender's smart contract
+     */
     function creditEvents() external view returns (CreditEvents memory) {
         return creditEvents(msg.sender);
     }
 
     /**
-    * @notice Function to get the credit events for a specific smart contract
-    */ 
-    function creditEvents(address smartContract_) public view returns (CreditEvents memory) {
+     * @notice Function to get the credit events for a specific smart contract
+     */
+    function creditEvents(
+        address smartContract_
+    ) public view returns (CreditEvents memory) {
         CreditEvents memory ce = _creditEvents[smartContract_];
         return ce;
     }
 
-
-
     /* ============ RESTRICTED-FACING FUNCTIONS ============ */
     /**
-    * @notice Function to set the debt for a given smart contract
-    */
-    function setDebt(address smartContract_, DebtBase calldata debt_) external onlyRole(DEBT_MANAGER_ROLE) {
+     * @notice Function to set the debt for a given smart contract
+     */
+    function setDebt(
+        address smartContract_,
+        DebtBase calldata debt_
+    ) external onlyRole(DEBT_MANAGER_ROLE) {
         _debts[smartContract_] = debt_;
     }
 
     /*
-    * @notice Function to set the credit events for a given smart contract
-    */ 
-    function setCreditEvents(address smartContract_, CreditEvents calldata creditEvents_) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
+     * @notice Function to set the credit events for a given smart contract
+     */
+    function setCreditEvents(
+        address smartContract_,
+        CreditEvents calldata creditEvents_
+    ) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
         _creditEvents[smartContract_] = creditEvents_;
     }
 
     /*
-    * @notice Batch version of {setCreditEventsBatch}
-    */ 
-    function setCreditEventsBatch(address[] calldata smartContracts, CreditEvents[] calldata creditEventsList) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
+     * @notice Batch version of {setCreditEventsBatch}
+     */
+    function setCreditEventsBatch(
+        address[] calldata smartContracts,
+        CreditEvents[] calldata creditEventsList
+    ) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
         if (smartContracts.length != creditEventsList.length) {
             revert InvalidInputLength();
         }
@@ -84,9 +101,12 @@ contract DebtEngine is IDebtEngine, AccessControl, DebtEngineInvariantStorage {
     }
 
     /*
-    * @notice Batch version of {setDebtBatch}
-    */ 
-    function setDebtBatch(address[] calldata smartContracts, DebtBase[] calldata debts) external onlyRole(DEBT_MANAGER_ROLE) {
+     * @notice Batch version of {setDebtBatch}
+     */
+    function setDebtBatch(
+        address[] calldata smartContracts,
+        DebtBase[] calldata debts
+    ) external onlyRole(DEBT_MANAGER_ROLE) {
         if (smartContracts.length != debts.length) {
             revert InvalidInputLength();
         }
@@ -99,8 +119,8 @@ contract DebtEngine is IDebtEngine, AccessControl, DebtEngineInvariantStorage {
     /* ============ ACCESS CONTROL ============ */
 
     /*
-    * @dev Returns `true` if `account` has been granted `role`.
-    */
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
     function hasRole(
         bytes32 role,
         address account
