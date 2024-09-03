@@ -1,6 +1,6 @@
 # Debt Engine
 
-[TOC]
+> This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
 This repository includes the DebtEngine contract for the [CMTAT](https://github.com/CMTA/CMTAT) token.
 
