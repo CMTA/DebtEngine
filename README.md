@@ -64,6 +64,22 @@ interface IDebtEngine is IDebtGlobal {
 
 ### Contracts Description Table
 
+|    Contract    |         Type         |                         Bases                          |                |               |
+| :------------: | :------------------: | :----------------------------------------------------: | :------------: | :-----------: |
+|       └        |  **Function Name**   |                     **Visibility**                     | **Mutability** | **Modifiers** |
+|                |                      |                                                        |                |               |
+| **DebtEngine** |    Implementation    | IDebtEngine, AccessControl, DebtEngineInvariantStorage |                |               |
+|       └        |    <Constructor>     |                        Public ❗️                        |       🛑        |      NO❗️      |
+|       └        |         debt         |                       External ❗️                       |                |      NO❗️      |
+|       └        |         debt         |                        Public ❗️                        |                |      NO❗️      |
+|       └        |     creditEvents     |                       External ❗️                       |                |      NO❗️      |
+|       └        |     creditEvents     |                        Public ❗️                        |                |      NO❗️      |
+|       └        |       setDebt        |                       External ❗️                       |       🛑        |   onlyRole    |
+|       └        |   setCreditEvents    |                       External ❗️                       |       🛑        |   onlyRole    |
+|       └        | setCreditEventsBatch |                       External ❗️                       |       🛑        |   onlyRole    |
+|       └        |    setDebtsBatch     |                       External ❗️                       |       🛑        |   onlyRole    |
+|       └        |       hasRole        |                        Public ❗️                        |                |      NO❗️      |
+
 ### Legend
 
 | Symbol | Meaning                   |
