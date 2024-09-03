@@ -41,7 +41,7 @@ While it has been designed for the CMTAT, the debtEngine can be used with others
 
 For that, the only thing to do is to import in your contract the interface `IDebtEngine` which declares the two functions `debt` and `creditEvents`.
 
-This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.sol](https://github.com/CMTA/CMTAT/blob/23a1e59f913d079d0c09d32fafbd95ab2d426093/contracts/interfaces/engine/IRuleEngine.sol)
+This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.sol](https://github.com/CMTA/CMTAT/blob/master/contracts/interfaces/engine/IDebtEngine.sol)
 
 ```solidity
 interface IDebtEngine is IDebtGlobal {
@@ -180,3 +180,8 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Intellectual property
+
+The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
+
