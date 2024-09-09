@@ -10,6 +10,6 @@ contract DebtEngineInvariantStorage {
     bytes32 public constant DEBT_MANAGER_ROLE = keccak256("DEBT_MANAGER_ROLE");
 
     // custom error
-    error AdminAddressZeroNotAllowed();
+    error AdminWithAddressZeroNotAllowed();
     error InvalidInputLength();
 }

@@ -84,7 +84,7 @@ contract DebtEngineTest is
 
     function setUp() public {
         // Deploy the DebtEngine contract with admin role
-        debtEngine = new DebtEngine(admin);
+        debtEngine = new DebtEngine(admin, AddressZero);
         ICMTATConstructor.ERC20Attributes
             memory erc20Attributes = ICMTATConstructor.ERC20Attributes(
                 "CMTA Token",
@@ -112,6 +112,27 @@ contract DebtEngineTest is
             engines
         );
     }
+
+    /*//////////////////////////////////////////////////////////////
+            DEPLOYMENT
+    ///////////////////////////////////////*/
+
+    function testDeploy() public {
+        address forwarder = address(0x1);
+        debtEngine = new DebtEngine(admin, forwarder);
+
+        // Forwarder
+        assertEq(debtEngine.isTrustedForwarder(forwarder), true);
+        // admin
+        vm.expectRevert(
+            abi.encodeWithSelector(AdminWithAddressZeroNotAllowed.selector)
+        );
+        debtEngine = new DebtEngine(AddressZero, forwarder);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              Access control
+    ///////////////////////////////////////*/
 
     function testSetDebtAsAdmin() public {
         // Act
@@ -166,33 +187,6 @@ contract DebtEngineTest is
             )
         );
         debtEngine.setCreditEvents(testContract, creditEventSample);
-    }
-
-    function testCanReturnCMTATDebt() public {
-        // Arrange
-        vm.prank(admin);
-        debtEngine.setDebt(address(cmtat), debtSample);
-
-        vm.prank(admin);
-        cmtat.setDebtEngine(debtEngine);
-
-        // Call from CMTAT, return debt smart contract
-        DebtEngine.DebtBase memory debt = cmtat.debt();
-        assertEq(debt.parValue, 1000);
-    }
-
-    function testCanReturnCMTATCreditEvents() public {
-        // Call as admin to set credit events for non-admin's contract
-        vm.prank(admin);
-        debtEngine.setCreditEvents(address(cmtat), creditEventSample);
-
-        vm.prank(admin);
-        cmtat.setDebtEngine(debtEngine);
-
-        // Call from attacker, should return credit events for attacker address
-        vm.prank(attacker);
-        DebtEngine.CreditEvents memory credit = cmtat.creditEvents();
-        assertEq(credit.flagRedeemed, true);
     }
 
     function testSetDebtsBatchAsAdmin() public {
@@ -289,6 +283,40 @@ contract DebtEngineTest is
         debtEngine.setCreditEventsBatch(contracts, creditEventsList);
     }
 
+    /*//////////////////////////////////////////////////////////////
+            Get
+    ///////////////////////////////////////*/
+
+    function testCanReturnCMTATDebt() public {
+        // Arrange
+        vm.prank(admin);
+        debtEngine.setDebt(address(cmtat), debtSample);
+
+        vm.prank(admin);
+        cmtat.setDebtEngine(debtEngine);
+
+        // Call from CMTAT, return debt smart contract
+        DebtEngine.DebtBase memory debt = cmtat.debt();
+        assertEq(debt.parValue, 1000);
+    }
+
+    function testCanReturnCMTATCreditEvents() public {
+        // Call as admin to set credit events for non-admin's contract
+        vm.prank(admin);
+        debtEngine.setCreditEvents(address(cmtat), creditEventSample);
+
+        vm.prank(admin);
+        cmtat.setDebtEngine(debtEngine);
+
+        // Call from attacker, should return credit events for attacker address
+        vm.prank(attacker);
+        DebtEngine.CreditEvents memory credit = cmtat.creditEvents();
+        assertEq(credit.flagRedeemed, true);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+           INVALID PARAMETER
+    ///////////////////////////////////////*/
     function testSetDebtsBatchLengthMismatch() public {
         // Set arrays with mismatched lengths
         address[] memory contracts = new address[](1);

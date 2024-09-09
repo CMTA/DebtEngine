@@ -15,8 +15,8 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngine** | Implementation | IDebtEngine, AccessControl, DebtEngineInvariantStorage |||
-| └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
+| **DebtEngine** | Implementation | IDebtEngine, AccessControl, DebtEngineInvariantStorage, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
 | └ | debt | External ❗️ |   |NO❗️ |
 | └ | debt | Public ❗️ |   |NO❗️ |
 | └ | creditEvents | External ❗️ |   |NO❗️ |
@@ -24,8 +24,11 @@
 | └ | setDebt | External ❗️ | 🛑  | onlyRole |
 | └ | setCreditEvents | External ❗️ | 🛑  | onlyRole |
 | └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyRole |
-| └ | setDebtsBatch | External ❗️ | 🛑  | onlyRole |
+| └ | setDebtBatch | External ❗️ | 🛑  | onlyRole |
 | └ | hasRole | Public ❗️ |   |NO❗️ |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
 
 
 ### Legend
