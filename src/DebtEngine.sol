@@ -5,8 +5,7 @@ import {AccessControl} from "OZ/access/AccessControl.sol";
 import {ERC2771Context, Context} from "OZ/metatx/ERC2771Context.sol";
 import {IDebtEngine} from "CMTAT/interfaces/engine/IDebtEngine.sol";
 import {DebtEngineInvariantStorage} from "./DebtEngineInvariantStorage.sol";
-import {ICMTATDebt} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
-import {ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
+
 contract DebtEngine is
     IDebtEngine,
     AccessControl,
@@ -18,6 +17,10 @@ contract DebtEngine is
      * Get the current version of the smart contract
      */
     string public constant VERSION = "0.3.0";
+
+    // Events
+    event DebtSet(address indexed smartContract);
+    event CreditEventsSet(address indexed smartContract);
 
     // Mapping of debts and credit events to specific smart contracts
     mapping(address => DebtInformation) private _debts;
@@ -54,8 +57,7 @@ contract DebtEngine is
     function debt(
         address smartContract_
     ) public view returns (DebtInformation memory) {
-        DebtInformation memory d = _debts[smartContract_];
-        return d;
+        return _debts[smartContract_];
     }
 
     /**
@@ -71,8 +73,7 @@ contract DebtEngine is
     function creditEvents(
         address smartContract_
     ) public view returns (CreditEvents memory) {
-        CreditEvents memory ce = _creditEvents[smartContract_];
-        return ce;
+        return _creditEvents[smartContract_];
     }
 
     /* ============ RESTRICTED-FACING FUNCTIONS ============ */
@@ -83,21 +84,29 @@ contract DebtEngine is
         address smartContract_,
         DebtInformation calldata debt_
     ) external onlyRole(DEBT_MANAGER_ROLE) {
+        if (smartContract_ == address(0)) {
+            revert SmartContractWithAddressZeroNotAllowed();
+        }
         _debts[smartContract_] = debt_;
+        emit DebtSet(smartContract_);
     }
 
-    /*
+    /**
      * @notice Function to set the credit events for a given smart contract
      */
     function setCreditEvents(
         address smartContract_,
         CreditEvents calldata creditEvents_
     ) external onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {
+        if (smartContract_ == address(0)) {
+            revert SmartContractWithAddressZeroNotAllowed();
+        }
         _creditEvents[smartContract_] = creditEvents_;
+        emit CreditEventsSet(smartContract_);
     }
 
-    /*
-     * @notice Batch version of {setCreditEventsBatch}
+    /**
+     * @notice Batch version of {setCreditEvents}
      */
     function setCreditEventsBatch(
         address[] calldata smartContracts,
@@ -108,12 +117,16 @@ contract DebtEngine is
         }
 
         for (uint256 i = 0; i < smartContracts.length; i++) {
+            if (smartContracts[i] == address(0)) {
+                revert SmartContractWithAddressZeroNotAllowed();
+            }
             _creditEvents[smartContracts[i]] = creditEventsList[i];
+            emit CreditEventsSet(smartContracts[i]);
         }
     }
 
-    /*
-     * @notice Batch version of {setDebtBatch}
+    /**
+     * @notice Batch version of {setDebt}
      */
     function setDebtBatch(
         address[] calldata smartContracts,
@@ -124,13 +137,17 @@ contract DebtEngine is
         }
 
         for (uint256 i = 0; i < smartContracts.length; i++) {
+            if (smartContracts[i] == address(0)) {
+                revert SmartContractWithAddressZeroNotAllowed();
+            }
             _debts[smartContracts[i]] = debts[i];
+            emit DebtSet(smartContracts[i]);
         }
     }
 
     /* ============ ACCESS CONTROL ============ */
 
-    /*
+    /**
      * @dev Returns `true` if `account` has been granted `role`.
      */
     function hasRole(

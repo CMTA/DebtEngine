@@ -353,4 +353,106 @@ contract DebtEngineTest is
         vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
         debtEngine.setCreditEventsBatch(contracts, creditEventsList);
     }
+
+    function testCannotSetDebtForAddressZero() public {
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector)
+        );
+        debtEngine.setDebt(AddressZero, debtSample);
+    }
+
+    function testCannotSetCreditEventsForAddressZero() public {
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector)
+        );
+        debtEngine.setCreditEvents(AddressZero, creditEventSample);
+    }
+
+    function testCannotSetDebtBatchWithAddressZero() public {
+        address[] memory contracts = new address[](2);
+        contracts[0] = testContract1;
+        contracts[1] = AddressZero;
+
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](2);
+        debts[0] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier1, debtInstrument: debtSample1});
+        debts[1] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier2, debtInstrument: debtSample2});
+
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector)
+        );
+        debtEngine.setDebtBatch(contracts, debts);
+    }
+
+    function testCannotSetCreditEventsBatchWithAddressZero() public {
+        address[] memory contracts = new address[](2);
+        contracts[0] = testContract1;
+        contracts[1] = AddressZero;
+
+        ICMTATCreditEvents.CreditEvents[]
+            memory creditEventsList = new ICMTATCreditEvents.CreditEvents[](2);
+        creditEventsList[0] = creditEventSample1;
+        creditEventsList[1] = creditEventSample2;
+
+        vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector)
+        );
+        debtEngine.setCreditEventsBatch(contracts, creditEventsList);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+           EVENTS
+    ///////////////////////////////////////*/
+
+    function testSetDebtEmitsEvent() public {
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.DebtSet(testContract);
+        debtEngine.setDebt(testContract, debtSample);
+    }
+
+    function testSetCreditEventsEmitsEvent() public {
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.CreditEventsSet(testContract);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+    }
+
+    function testSetDebtBatchEmitsEvents() public {
+        address[] memory contracts = new address[](2);
+        contracts[0] = testContract1;
+        contracts[1] = testContract2;
+
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](2);
+        debts[0] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier1, debtInstrument: debtSample1});
+        debts[1] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier2, debtInstrument: debtSample2});
+
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.DebtSet(testContract1);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.DebtSet(testContract2);
+        debtEngine.setDebtBatch(contracts, debts);
+    }
+
+    function testSetCreditEventsBatchEmitsEvents() public {
+        address[] memory contracts = new address[](2);
+        contracts[0] = testContract1;
+        contracts[1] = testContract2;
+
+        ICMTATCreditEvents.CreditEvents[]
+            memory creditEventsList = new ICMTATCreditEvents.CreditEvents[](2);
+        creditEventsList[0] = creditEventSample1;
+        creditEventsList[1] = creditEventSample2;
+
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.CreditEventsSet(testContract1);
+        vm.expectEmit(true, false, false, false);
+        emit DebtEngine.CreditEventsSet(testContract2);
+        debtEngine.setCreditEventsBatch(contracts, creditEventsList);
+    }
 }
