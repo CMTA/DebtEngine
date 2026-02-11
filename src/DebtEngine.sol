@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.20;
 
-import "OZ/access/AccessControl.sol";
-import "OZ/metatx/ERC2771Context.sol";
-import "CMTAT/interfaces/engine/IDebtEngine.sol";
-import "./DebtEngineInvariantStorage.sol";
-import {IDebtGlobal} from "CMTAT/interfaces/IDebtGlobal.sol";
-
+import {AccessControl} from "OZ/access/AccessControl.sol";
+import {ERC2771Context, Context} from "OZ/metatx/ERC2771Context.sol";
+import {IDebtEngine} from "CMTAT/interfaces/engine/IDebtEngine.sol";
+import {DebtEngineInvariantStorage} from "./DebtEngineInvariantStorage.sol";
+import {ICMTATDebt} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
+import {ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
 contract DebtEngine is
     IDebtEngine,
     AccessControl,
@@ -17,10 +17,10 @@ contract DebtEngine is
      * @notice
      * Get the current version of the smart contract
      */
-    string public constant VERSION = "0.2.0";
+    string public constant VERSION = "0.3.0";
 
     // Mapping of debts and credit events to specific smart contracts
-    mapping(address => DebtBase) private _debts;
+    mapping(address => DebtInformation) private _debts;
     mapping(address => CreditEvents) private _creditEvents;
 
     /**
@@ -44,8 +44,8 @@ contract DebtEngine is
     /**
      * @notice  Function to get the debt for the sender's smart contract
      */
-    function debt() external view returns (DebtBase memory) {
-        return debt(msg.sender);
+    function debt() external view returns (DebtInformation memory) {
+        return debt(_msgSender());
     }
 
     /**
@@ -53,8 +53,8 @@ contract DebtEngine is
      */
     function debt(
         address smartContract_
-    ) public view returns (DebtBase memory) {
-        DebtBase memory d = _debts[smartContract_];
+    ) public view returns (DebtInformation memory) {
+        DebtInformation memory d = _debts[smartContract_];
         return d;
     }
 
@@ -62,7 +62,7 @@ contract DebtEngine is
      * @notice Function to get the credit events for the sender's smart contract
      */
     function creditEvents() external view returns (CreditEvents memory) {
-        return creditEvents(msg.sender);
+        return creditEvents(_msgSender());
     }
 
     /**
@@ -81,7 +81,7 @@ contract DebtEngine is
      */
     function setDebt(
         address smartContract_,
-        DebtBase calldata debt_
+        DebtInformation calldata debt_
     ) external onlyRole(DEBT_MANAGER_ROLE) {
         _debts[smartContract_] = debt_;
     }
@@ -117,7 +117,7 @@ contract DebtEngine is
      */
     function setDebtBatch(
         address[] calldata smartContracts,
-        DebtBase[] calldata debts
+        DebtInformation[] calldata debts
     ) external onlyRole(DEBT_MANAGER_ROLE) {
         if (smartContracts.length != debts.length) {
             revert InvalidInputLength();
