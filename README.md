@@ -117,10 +117,18 @@ Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g
 
 ## Compatibility
 
-| Component | Compatible Versions |
-| --- | --- |
-| **DebtEngine v0.3.0** (unaudited) | CMTAT >= v3.0.0 |
-| **DebtEngine v0.2.0** (unaudited) | CMTAT v2.5.0 (unaudited) |
+| DebtEngine | On-chain version (getter) | CMTAT | Tested against (submodules) | OpenZeppelin |
+| --- | --- | --- | --- | --- |
+| **v0.3.0** (current, unaudited) | `"0.3.0"` (`version()`) | ≥ v3.0.0 | CMTAT v3.0.0 (audited) | v5.5.0 |
+| **v0.2.0** (unaudited) | `"0.2.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
+| **v0.1.0** (unaudited) | `"0.1.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
+
+- **Use DebtEngine v0.3.0 for a CMTAT v3 token.** v0.1.0 and v0.2.0 are only for CMTAT v2.5.
+- **v0.3.0 and CMTAT v2.x are not compatible**, in either direction. CMTAT v3 rewrote the engine interface: v2.5's `IDebtEngine` returns `IDebtGlobal.DebtBase`, while v3's extends `ICMTATDebt` / `ICMTATCreditEvents` and returns `DebtInformation`, which has different structs and fields.
+- **Which CMTAT tokens can use it:** only deployments that include CMTAT's `DebtEngineModule` (e.g. `CMTATStandaloneDebt` / `CMTATUpgradeableDebt`) can be pointed at a DebtEngine.
+- **One engine serves many tokens.** The token calls `debt()` / `creditEvents()` on the engine, and the engine answers with the record stored under the calling token's address.
+- **The v0.3.0 test suite deploys a real `CMTATStandaloneDebt` from the pinned CMTAT v3.0.0 submodule** and checks that the token returns the debt and credit events stored in the engine.
+- **Newer CMTAT v3 releases:** they are expected to work as long as `IDebtEngine` is unchanged, but they have not been tested. Re-run the test suite against the target CMTAT version before deploying.
 
 ## How to include it
 

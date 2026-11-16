@@ -98,6 +98,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Document `hasRole` super-admin behavior in NatSpec and README
 - Document ERC-2771 forwarder immutability in README
 - Document the authorization-hook convention and a capability → role table per deployment variant in README
+- Document which CMTAT version each DebtEngine release is compatible with and was tested against in README
 - Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
 - Move the Slither report to `doc/tools/slither-report.md` and add an Aderyn report (`doc/tools/aderyn-report.md`)
 - Add agent guide (`CLAUDE.md` / `AGENTS.md`) and `doc/tools/CLAUDE_ANALYSIS_SUMMARY.md`
