@@ -65,7 +65,11 @@ test/
 ├── DebtEngineOwnable.t.sol               # owner-specific tests for the Ownable variant (incl. ERC-165 / ERC-173)
 ├── DebtEngineHarness.t.sol               # test-only engine: proves public functions stay `virtual`, covers the base `_msgSender()`
 ├── DebtEngineThreatModel.t.sol           # security-analysis tests: PoCs for AUDIT/RESULT.md findings, fuzzed access-control and set/clear model
-└── DeployGuideCMTATv3.0.0.t.sol          # runs every step of doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md against CMTAT v3.0.0
+├── DeployGuideCMTATv3.0.0.t.sol          # runs every step of doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md against CMTAT v3.0.0
+└── script/DeployScripts.t.sol            # tests for the deployment scripts
+script/
+├── DeployDebtEngine.s.sol                # deploy either variant (env: ENGINE_VARIANT, ENGINE_ADMIN, FORWARDER, DEBT_MANAGER, CREDIT_EVENTS_MANAGER)
+└── ConnectDebtEngine.s.sol               # token side: setDebtEngine (env: TOKEN, DEBT_ENGINE, ALLOW_EMPTY_RECORD); refuses an empty record
 ```
 
 ## Other important files
@@ -99,6 +103,8 @@ forge test
 forge fmt                      # formatter (forge fmt --check in CI-style checks)
 forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
 forge test --gas-report
+forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast   # omit --broadcast to simulate
+forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
 slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/v0.3.0/slither-report.md
 aderyn . -o doc/tools/v0.3.0/aderyn-report.md
 bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritance.sh && bash doc/script/script_surya_report.sh

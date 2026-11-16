@@ -7,6 +7,7 @@
   - [4.1 DebtEngineAccessControl with CMTATStandaloneDebt](#41-debtengineaccesscontrol-with-cmtatstandalonedebt)
   - [4.2 DebtEngineOwnable with CMTATStandaloneDebt](#42-debtengineownable-with-cmtatstandalonedebt)
   - [4.3 Upgradeable token behind a proxy](#43-upgradeable-token-behind-a-proxy)
+  - [Deployment scripts](#deployment-scripts)
 - [5. One engine, several tokens](#5-one-engine-several-tokens)
 - [6. Read workflow](#6-read-workflow)
 - [7. Operating the engine](#7-operating-the-engine)
@@ -19,7 +20,7 @@ This guide deploys DebtEngine v0.3.0 next to a **CMTAT v3.0.0** debt token and c
 - **When it is connected:** always **after** the token is deployed. CMTAT v3.0.0 has no debt-engine constructor argument; the token is connected with `setDebtEngine(engine)`.
 - **What changes for holders:** nothing on transfers or mints. The engine only serves data; it is not a compliance engine.
 
-Every step below is executed by `test/DeployGuideCMTATv3.0.0.t.sol` against the CMTAT v3.0.0 submodule (`forge test --match-contract DeployGuideCMTATv300Test`). Each test is named after the section it validates. There is no deployment script in the repository yet; the calls are written in function-call notation, to be issued with your usual tooling (Foundry script, Safe transaction builder, `cast`).
+Every step below is executed by `test/DeployGuideCMTATv3.0.0.t.sol` against the CMTAT v3.0.0 submodule (`forge test --match-contract DeployGuideCMTATv300Test`). Each test is named after the section it validates. The calls are written in function-call notation. Two Foundry scripts cover the engine side and the connection; see [Deployment scripts](#deployment-scripts) at the end of section 4. Record writes are data-specific and are issued with your usual tooling (Safe transaction builder, `cast`, a custom script).
 
 ## 1. What the engine provides
 
@@ -142,6 +143,35 @@ Validated by `testGuide_4_3_UpgradeableTokenThroughProxy`.
 5. **Connect** through the proxy: `CMTATUpgradeableDebt(proxy).setDebtEngine(engine)`, then verify.
 
 An upgrade of the token implementation keeps the proxy address, so the engine record stays valid.
+
+### Deployment scripts
+
+Tested by `test/script/DeployScripts.t.sol`.
+
+**`script/DeployDebtEngine.s.sol`** deploys the engine (section 4.1 steps 1–2, or 4.2 step 1) and checks the result (version, admin / owner, forwarder, granted roles):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ENGINE_VARIANT` | `access-control` | `access-control` or `ownable`; anything else reverts with `UnknownVariant` |
+| `ENGINE_ADMIN` | the broadcaster | Initial admin / owner |
+| `FORWARDER` | `address(0)` | ERC-2771 forwarder (immutable) |
+| `DEBT_MANAGER`, `CREDIT_EVENTS_MANAGER` | unset | RBAC only: granted the manager roles. Requires the broadcaster to be the admin (`BroadcasterIsNotAdmin`); rejected for `ownable` (`ManagersNeedAccessControlVariant`) |
+
+```bash
+ENGINE_VARIANT=access-control DEBT_MANAGER=0x... CREDIT_EVENTS_MANAGER=0x... \
+  forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+```
+
+To deploy for a multisig admin, either set `ENGINE_ADMIN` to the multisig (and grant the managers from it afterwards), or deploy with the broadcaster as admin, grant the managers, and follow section 8.
+
+**`script/ConnectDebtEngine.s.sol`** runs on the token side (section 4.1 step 5): the broadcaster must hold the token's `DEBT_ROLE`. It **refuses to connect** when the engine holds no debt record for the token (`NoDebtRecordForToken`), which enforces the write-before-connect order; set `ALLOW_EMPTY_RECORD=true` to override. It checks `token.debtEngine()` afterwards.
+
+```bash
+TOKEN=0x... DEBT_ENGINE=0x... \
+  forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+```
+
+Run either script without `--broadcast` first for a simulation.
 
 ## 5. One engine, several tokens
 

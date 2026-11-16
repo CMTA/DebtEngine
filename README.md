@@ -311,6 +311,17 @@ aderyn . -o doc/tools/v0.3.0/aderyn-report.md
 
 Run the 3 scripts in [./doc/script](./doc/script); the output is written to [./doc/surya](./doc/surya).
 
+### Deployment
+
+Two Foundry scripts, configured with environment variables (see the [deployment guide](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md#deployment-scripts)):
+
+```bash
+# Deploy the engine (ENGINE_VARIANT=access-control|ownable, ENGINE_ADMIN, FORWARDER, DEBT_MANAGER, CREDIT_EVENTS_MANAGER)
+forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+# Connect a CMTAT v3.0.0 debt token (TOKEN, DEBT_ENGINE); refuses if the engine has no record for the token
+forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+```
+
 ### Foundry
 
 #### Build

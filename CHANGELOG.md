@@ -63,6 +63,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Added
 
+- Add Foundry deployment scripts: `script/DeployDebtEngine.s.sol` (either variant, optional manager roles, post-deployment checks) and `script/ConnectDebtEngine.s.sol` (connects a CMTAT v3.0.0 debt token; refuses when the engine holds no record for the token)
 - Add `DebtEngineAccessControl` deployment variant (OpenZeppelin `AccessControlEnumerable`, role holders listable on-chain)
 - Add `DebtEngineOwnable` deployment variant (OpenZeppelin `Ownable2Step`, two-step ownership transfer)
 - Add `VersionModule` (`src/modules/VersionModule.sol`) exposing `version()`
@@ -122,6 +123,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Testing
 
+- Add `test/script/DeployScripts.t.sol` for both deployment scripts (defaults, managers, forwarder, Ownable, environment parsing, refusal of an empty record, guard reverts)
 - Add `DeployGuideCMTATv3.0.0.t.sol`, which runs every step of the CMTAT v3.0.0 deployment guide against real `CMTATStandaloneDebt` and proxied `CMTATUpgradeableDebt` tokens
 - Add `DebtEngineThreatModel.t.sol` from the security audit ([`CLAUDE_AUDIT.md`](./doc/tools/v0.3.0/CLAUDE_AUDIT.md)): proofs of concept for the role-bookkeeping behaviour of the implicit admin, the trusted forwarder and token-local debt shadowing, plus fuzz tests that every writer rejects unauthorized callers in both variants and that set / clear sequences match a model
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
