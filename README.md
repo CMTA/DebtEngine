@@ -145,6 +145,8 @@ Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g
 - **The v0.3.0 test suite deploys a real `CMTATStandaloneDebt` from the pinned CMTAT v3.0.0 submodule** and checks that the token returns the debt and credit events stored in the engine.
 - **Newer CMTAT v3 releases:** they are expected to work as long as `IDebtEngine` is unchanged, but they have not been tested. Re-run the test suite against the target CMTAT version before deploying.
 
+Step-by-step deployment with a CMTAT v3.0.0 debt token (standalone or upgradeable), validated by `test/DeployGuideCMTATv3.0.0.t.sol`: [doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md).
+
 ## How to include it
 
 While it has been designed for the CMTAT, the DebtEngine can be used with other contracts to define debt and credit events.

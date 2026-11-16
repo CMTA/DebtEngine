@@ -64,7 +64,8 @@ test/
 ├── DebtEngineAccessControl.t.sol         # role-specific tests for the RBAC variant
 ├── DebtEngineOwnable.t.sol               # owner-specific tests for the Ownable variant (incl. ERC-165 / ERC-173)
 ├── DebtEngineHarness.t.sol               # test-only engine: proves public functions stay `virtual`, covers the base `_msgSender()`
-└── DebtEngineThreatModel.t.sol           # security-analysis tests: PoCs for AUDIT/RESULT.md findings, fuzzed access-control and set/clear model
+├── DebtEngineThreatModel.t.sol           # security-analysis tests: PoCs for AUDIT/RESULT.md findings, fuzzed access-control and set/clear model
+└── DeployGuideCMTATv3.0.0.t.sol          # runs every step of doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md against CMTAT v3.0.0
 ```
 
 ## Other important files
@@ -74,6 +75,7 @@ test/
 - `foundry.toml` — solc `0.8.33`, optimizer 200 runs, `evm_version = prague`.
 - `remappings.txt` — `CMTAT/` → `lib/CMTAT/contracts/`, `OZ/` → `lib/openzeppelin-contracts/contracts/`, `@openzeppelin/contracts-upgradeable/`.
 - `doc/coverage/` — lcov + HTML coverage report.
+- `doc/technical/guides/` — deployment guides (`DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`); each step is run by a test, keep the two in sync.
 - `doc/tools/<version>/` — tool reports per release: `slither-report.md`, `aderyn-report.md`, the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` and the published security audit `CLAUDE_AUDIT.md` (currently `doc/tools/v0.3.0/`).
 - `doc/script/` — Surya scripts; output in `doc/surya/` (graph, inheritance, report).
 - `AUDIT/` — working deliverables of the v0.3.0 security analysis (published version: `doc/tools/v0.3.0/CLAUDE_AUDIT.md`): `THREAT_MODEL.md` (actors, threat IDs, invariants), `TEST_IMPROVEMENT.md`, `RESULT.md` (findings with PoCs and fix code).

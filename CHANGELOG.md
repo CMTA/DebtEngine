@@ -106,6 +106,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Documentation
 
+- Add a deployment guide for CMTAT v3.0.0 debt tokens ([`doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md)): setup choices, roles on the engine and token side, deployment with both variants and with an upgradeable token, read workflow, operations, admin handover and troubleshooting
 - Document that granting a manager role to an admin is a no-op and revoking one emits `RoleRevoked` without effect, with the admin-handover runbook (README, `hasRole` NatSpec)
 - Document that the trusted forwarder is trusted for every function including role management, that renouncing the last admin freezes role management, and list the clear functions in the RBAC role table
 - Add the Claude security audit report of v0.3.0: [`doc/tools/v0.3.0/CLAUDE_AUDIT.md`](./doc/tools/v0.3.0/CLAUDE_AUDIT.md) (0 Critical/High/Medium/Low, 4 Info)
@@ -121,6 +122,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Testing
 
+- Add `DeployGuideCMTATv3.0.0.t.sol`, which runs every step of the CMTAT v3.0.0 deployment guide against real `CMTATStandaloneDebt` and proxied `CMTATUpgradeableDebt` tokens
 - Add `DebtEngineThreatModel.t.sol` from the security audit ([`CLAUDE_AUDIT.md`](./doc/tools/v0.3.0/CLAUDE_AUDIT.md)): proofs of concept for the role-bookkeeping behaviour of the implicit admin, the trusted forwarder and token-local debt shadowing, plus fuzz tests that every writer rejects unauthorized callers in both variants and that set / clear sequences match a model
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
 - Add `version()` test
