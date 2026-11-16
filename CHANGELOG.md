@@ -68,7 +68,11 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Add `VersionModule` (`src/modules/VersionModule.sol`) exposing `version()`
 - Add `DebtSet` and `CreditEventsSet` events on state changes
 - Add zero-address validation on `smartContract_` parameter (`SmartContractWithAddressZeroNotAllowed`)
-- Add `hasDebt(address)` and `hasCreditEvents(address)` view functions
+- Add `hasDebt(address)` and `hasCreditEvents(address)` view functions; they return whether a record is currently set
+- Add `clearDebt(address)` and `clearCreditEvents(address)` to delete a record, with `DebtCleared` / `CreditEventsCleared` events
+  - Use: retire a token, or remove a record written to the wrong address; before this, a record could only be overwritten with an empty struct and `hasDebt` / `hasCreditEvents` stayed `true` forever.
+  - Effect: the record and its `has*` flag are deleted, so `hasDebt` / `hasCreditEvents` return `false` and a CMTAT token pointing at the engine reads an empty record, as before it was set; clearing an unset record succeeds and still emits the event.
+  - Access: gated by the same hooks as the setters (`DEBT_MANAGER_ROLE` / `CREDIT_EVENTS_MANAGER_ROLE`, or the owner); no new storage; runtime bytecode +617 bytes (`DebtEngineAccessControl` 8,573 → 9,190) and +587 bytes (`DebtEngineOwnable` 7,107 → 7,694).
 - Add `MAX_BATCH_SIZE` (500) limit on `setDebtBatch` and `setCreditEventsBatch` (`BatchSizeTooLarge`)
 - `DebtEngineOwnable` advertises ERC-173 (`0x7f5828d0`) and ERC-165 through `supportsInterface`
 
@@ -116,6 +120,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
 - Add `version()` test
+- Add `clearDebt` / `clearCreditEvents` tests in the shared suite (clear, independence from the other record type and other tokens, clear of an unset record, set after clear, unauthorized caller, CMTAT token reads an empty record) and role-separation tests for the RBAC variant
 - Add role-separation tests (`DEBT_MANAGER_ROLE` cannot set credit events and vice versa) and a role-constant test for `DebtEngineAccessControl`
 - Add role-enumeration, implicit-admin-not-enumerated and ERC-165 tests for `DebtEngineAccessControl`
 - Add two-step ownership handover tests for `DebtEngineOwnable`

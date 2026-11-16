@@ -9,6 +9,8 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
     // Events
     event DebtSet(address indexed smartContract);
     event CreditEventsSet(address indexed smartContract);
+    event DebtCleared(address indexed smartContract);
+    event CreditEventsCleared(address indexed smartContract);
 
     // Mapping of debts and credit events to specific smart contracts
     mapping(address => DebtInformation) private _debts;
@@ -70,14 +72,16 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
     }
 
     /**
-     * @notice Returns true if debt has been set for the given smart contract
+     * @notice Returns true if a debt record is currently set for the given smart contract
+     * @dev True after {setDebt} / {setDebtBatch}, false again after {clearDebt}.
      */
     function hasDebt(address smartContract_) external view virtual returns (bool) {
         return _debtSet[smartContract_];
     }
 
     /**
-     * @notice Returns true if credit events have been set for the given smart contract
+     * @notice Returns true if credit events are currently set for the given smart contract
+     * @dev True after {setCreditEvents} / {setCreditEventsBatch}, false again after {clearCreditEvents}.
      */
     function hasCreditEvents(address smartContract_) external view virtual returns (bool) {
         return _creditEventsSet[smartContract_];
@@ -134,6 +138,24 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
         }
     }
 
+    /**
+     * @notice Deletes the debt record of `smartContract_`; `hasDebt` returns false afterwards
+     * and `debt(smartContract_)` returns the zero struct, as before any record was set.
+     * @dev Clearing a contract that has no record succeeds and still emits {DebtCleared}.
+     */
+    function clearDebt(address smartContract_) external virtual onlyDebtManager {
+        _clearDebt(smartContract_);
+    }
+
+    /**
+     * @notice Deletes the credit events of `smartContract_`; `hasCreditEvents` returns false afterwards
+     * and `creditEvents(smartContract_)` returns the zero struct, as before any record was set.
+     * @dev Clearing a contract that has no record succeeds and still emits {CreditEventsCleared}.
+     */
+    function clearCreditEvents(address smartContract_) external virtual onlyCreditEventsManager {
+        _clearCreditEvents(smartContract_);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -160,17 +182,37 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
         emit CreditEventsSet(smartContract_);
     }
 
+    /**
+     * @dev Single delete path for debt: removes the record and its "set" flag, emits {DebtCleared}.
+     */
+    function _clearDebt(address smartContract_) internal virtual {
+        delete _debts[smartContract_];
+        delete _debtSet[smartContract_];
+        emit DebtCleared(smartContract_);
+    }
+
+    /**
+     * @dev Single delete path for credit events: removes the record and its "set" flag,
+     * emits {CreditEventsCleared}.
+     */
+    function _clearCreditEvents(address smartContract_) internal virtual {
+        delete _creditEvents[smartContract_];
+        delete _creditEventsSet[smartContract_];
+        emit CreditEventsCleared(smartContract_);
+    }
+
     /* ============ AUTHORIZATION HOOKS ============ */
 
     /**
-     * @notice Authorization hook invoked before any debt change (`setDebt`, `setDebtBatch`).
+     * @notice Authorization hook invoked before any debt change (`setDebt`, `setDebtBatch`, `clearDebt`).
      * @dev Must revert if the caller is not allowed. Implemented by each deployment contract
      * with its access-control policy; `view` guarantees the check cannot mutate state.
      */
     function _authorizeSetDebt() internal view virtual;
 
     /**
-     * @notice Authorization hook invoked before any credit-events change (`setCreditEvents`, `setCreditEventsBatch`).
+     * @notice Authorization hook invoked before any credit-events change (`setCreditEvents`, `setCreditEventsBatch`,
+     * `clearCreditEvents`).
      * @dev Must revert if the caller is not allowed. Implemented by each deployment contract
      * with its access-control policy; `view` guarantees the check cannot mutate state.
      */

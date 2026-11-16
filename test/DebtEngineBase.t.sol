@@ -587,4 +587,124 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
         ICMTATDebt.DebtInformation memory d = abi.decode(ret, (ICMTATDebt.DebtInformation));
         assertEq(d.debtInstrument.parValue, debtSample.debtInstrument.parValue);
     }
+
+    /*//////////////////////////////////////////////////////////////
+              Clear
+    ///////////////////////////////////////*/
+
+    event DebtCleared(address indexed smartContract);
+    event CreditEventsCleared(address indexed smartContract);
+
+    function testClearDebt() public {
+        vm.prank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+        assertTrue(debtEngine.hasDebt(testContract));
+
+        vm.expectEmit(true, false, false, false, address(debtEngine));
+        emit DebtCleared(testContract);
+        vm.prank(admin);
+        debtEngine.clearDebt(testContract);
+
+        assertFalse(debtEngine.hasDebt(testContract));
+        ICMTATDebt.DebtInformation memory empty;
+        assertEq(abi.encode(debtEngine.debt(testContract)), abi.encode(empty));
+    }
+
+    function testClearCreditEvents() public {
+        vm.prank(admin);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+        assertTrue(debtEngine.hasCreditEvents(testContract));
+
+        vm.expectEmit(true, false, false, false, address(debtEngine));
+        emit CreditEventsCleared(testContract);
+        vm.prank(admin);
+        debtEngine.clearCreditEvents(testContract);
+
+        assertFalse(debtEngine.hasCreditEvents(testContract));
+        ICMTATCreditEvents.CreditEvents memory empty;
+        assertEq(abi.encode(debtEngine.creditEvents(testContract)), abi.encode(empty));
+    }
+
+    function testClearDebtLeavesCreditEventsAndOtherContracts() public {
+        vm.startPrank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+        debtEngine.setDebt(testContract1, debtSample);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+        debtEngine.clearDebt(testContract);
+        vm.stopPrank();
+
+        assertFalse(debtEngine.hasDebt(testContract));
+        assertTrue(debtEngine.hasDebt(testContract1));
+        assertTrue(debtEngine.hasCreditEvents(testContract));
+        assertEq(debtEngine.creditEvents(testContract).rating, creditEventSample.rating);
+    }
+
+    function testClearCreditEventsLeavesDebt() public {
+        vm.startPrank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+        debtEngine.clearCreditEvents(testContract);
+        vm.stopPrank();
+
+        assertFalse(debtEngine.hasCreditEvents(testContract));
+        assertTrue(debtEngine.hasDebt(testContract));
+    }
+
+    function testClearUnsetRecordSucceeds() public {
+        vm.expectEmit(true, false, false, false, address(debtEngine));
+        emit DebtCleared(testContract);
+        vm.prank(admin);
+        debtEngine.clearDebt(testContract);
+        assertFalse(debtEngine.hasDebt(testContract));
+
+        vm.expectEmit(true, false, false, false, address(debtEngine));
+        emit CreditEventsCleared(testContract);
+        vm.prank(admin);
+        debtEngine.clearCreditEvents(testContract);
+        assertFalse(debtEngine.hasCreditEvents(testContract));
+    }
+
+    function testSetAfterClear() public {
+        vm.startPrank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+        debtEngine.clearDebt(testContract);
+        debtEngine.setDebt(testContract, debtSample);
+        vm.stopPrank();
+
+        assertTrue(debtEngine.hasDebt(testContract));
+        assertEq(debtEngine.debt(testContract).debtInstrument.parValue, debtSample.debtInstrument.parValue);
+    }
+
+    function testCannotUnauthorizedClearDebt() public {
+        vm.prank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+
+        _expectUnauthorizedDebtRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.clearDebt(testContract);
+        assertTrue(debtEngine.hasDebt(testContract));
+    }
+
+    function testCannotUnauthorizedClearCreditEvents() public {
+        vm.prank(admin);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+
+        _expectUnauthorizedCreditEventsRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.clearCreditEvents(testContract);
+        assertTrue(debtEngine.hasCreditEvents(testContract));
+    }
+
+    function testCMTATReadsEmptyRecordAfterClear() public {
+        vm.startPrank(admin);
+        debtEngine.setDebt(address(cmtat), debtSample);
+        debtEngine.setCreditEvents(address(cmtat), creditEventSample);
+        cmtat.setDebtEngine(debtEngine);
+        debtEngine.clearDebt(address(cmtat));
+        debtEngine.clearCreditEvents(address(cmtat));
+        vm.stopPrank();
+
+        assertEq(cmtat.debt().debtInstrument.parValue, 0);
+        assertEq(cmtat.creditEvents().rating, "");
+    }
 }

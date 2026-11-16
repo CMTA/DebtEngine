@@ -34,7 +34,7 @@ Baseline: `forge build` and `forge test` green at the start, **69 tests**. End: 
 | G-3 | Agent guide: stale attribute-order rule; tool-report paths | ✅ |
 | G-4 | Production-source reference scan; NatSpec length | ⬜ nothing found |
 | H-1 | `MAX_BATCH_SIZE = 500` is unreachable under the mainnet transaction gas cap | ✅ documented; value → Outstanding |
-| H-2 | A record can never be removed; `hasDebt` stays `true` forever | ⬜ decide → U-1 |
+| H-2 | A record can never be removed; `hasDebt` stays `true` forever | ✅ fixed by U-1 |
 | H-3 | Renouncing ownership / admin freezes all records | ⬜ keep, documented |
 | H-4 | `debt()` / `creditEvents()` answer for `_msgSender()`, so a forwarder can query any token | ⬜ keep (the data is public anyway) |
 | I-1 | Interface granularity (`IDebtEngine`) | ⬜ nothing found |
@@ -43,18 +43,17 @@ Baseline: `forge build` and `forge test` green at the start, **69 tests**. End: 
 | K-1 | Missing tests: batch-size guard, boundaries, forwarder, length direction | ✅ 35 tests added |
 | L-1 | Braceless control-flow bodies | ⬜ none found |
 | M-1 | `if`/`revert` guards | ✅ 9 converted to `require(cond, Error())` |
-| U-1 | No way to clear a record | ⬜ decide (Outstanding) |
+| U-1 | No way to clear a record | ✅ `clearDebt` / `clearCreditEvents` added |
 | U-2 | No enumeration of the tokens that have a record | ⬜ leave |
 | U-3 | No guidance on a batch size that fits in one transaction | ✅ documented (H-1) |
 
-29 rows: 12 ✅, 17 ⬜.
+29 rows: 14 ✅, 15 ⬜.
 
 ## Outstanding
 
 | ID | Item | Why it is still open |
 |---|---|---|
 | H-1 | Lower `MAX_BATCH_SIZE`, or keep 500 as a chain-agnostic ceiling | A design choice: 500 is harmless (an oversized batch runs out of gas and reverts), but a value near the mainnet limit (about 40 debt records) would catch mistakes earlier on mainnet and be wrong on chains with other caps. |
-| U-1 | Add `clearDebt` / `clearCreditEvents` | Changes the ABI and the meaning of `hasDebt`; needs a product decision (see U-1). |
 | — | Slither report in `doc/tools/v0.3.0/slither-report.md` predates this review | Slither cannot run on the review machine (`ModuleNotFoundError: No module named 'slither'`); re-run it after reinstalling. The Aderyn report was regenerated. |
 
 ## A. Loops and iteration
@@ -278,7 +277,7 @@ Actors: the deployer (admin or owner, forwarder), the debt manager and credit-ev
 
 | ID | Actor | Journey step | What they must do today | Proposed addition | Verdict |
 |---|---|---|---|---|---|
-| U-1 | Debt / credit-events manager | Retire a token or correct a record set by mistake | Overwrite with an empty struct; `hasDebt` still says `true` | `clearDebt` / `clearCreditEvents` | decide |
+| U-1 | Debt / credit-events manager | Retire a token or correct a record set by mistake | Overwrite with an empty struct; `hasDebt` still says `true` | `clearDebt` / `clearCreditEvents` | ✅ done |
 | U-2 | Indexer | List every token that has a record | Replay `DebtSet` / `CreditEventsSet` from deployment | On-chain enumeration | leave |
 | U-3 | Manager | Size a batch that fits in one transaction | Trial and error against the gas cap | Documentation (H-1) | ✅ done |
 
@@ -312,6 +311,7 @@ Actors: the deployer (admin or owner, forwarder), the debt manager and credit-ev
 6. **Cost, measured:** +599 runtime bytes (`DebtEngineAccessControl` 8,573 → 9,172), +565 (`DebtEngineOwnable`), `forge build --sizes`; both far below EIP-170.
 7. **Test to add:** set → clear → `hasDebt == false`, `debt()` equals the zero struct, event emitted; unauthorized caller rejected in both variants.
 8. **Verdict: decide.** It changes what `hasDebt` means ("currently set" instead of "ever set"), which is a product decision.
+9. **Decision: adopted.** Implemented in `DebtEngineBase` as proposed, with internal delete paths `_clearDebt` / `_clearCreditEvents`; `hasDebt` / `hasCreditEvents` now mean "currently set". Measured cost: +617 runtime bytes (`DebtEngineAccessControl` 8,573 → 9,190), +587 (`DebtEngineOwnable` 7,107 → 7,694). Tests added in the shared suite (both variants) and RBAC role-separation tests. Linked from `doc/tools/CLAUDE_ANALYSIS_SUMMARY.md` S-1.
 
 ### U-2. Enumerating the tokens with a record
 

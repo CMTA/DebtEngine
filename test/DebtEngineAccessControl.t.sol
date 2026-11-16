@@ -168,6 +168,24 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         debtEngine.setCreditEvents(testContract, creditEventSample);
     }
 
+    function testDebtManagerCannotClearCreditEvents() public {
+        vm.prank(admin);
+        debtEngineAc.grantRole(DEBT_MANAGER_ROLE, attacker);
+
+        _expectUnauthorizedCreditEventsRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.clearCreditEvents(testContract);
+    }
+
+    function testCreditEventsManagerCannotClearDebt() public {
+        vm.prank(admin);
+        debtEngineAc.grantRole(CREDIT_EVENTS_MANAGER_ROLE, attacker);
+
+        _expectUnauthorizedDebtRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.clearDebt(testContract);
+    }
+
     function testCreditEventsManagerCannotSetDebt() public {
         vm.prank(admin);
         debtEngineAc.grantRole(CREDIT_EVENTS_MANAGER_ROLE, attacker);
