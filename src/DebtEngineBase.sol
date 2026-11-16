@@ -3,14 +3,9 @@ pragma solidity ^0.8.20;
 
 import {IDebtEngine} from "CMTAT/interfaces/engine/IDebtEngine.sol";
 import {DebtEngineInvariantStorage} from "./DebtEngineInvariantStorage.sol";
+import {VersionModule} from "./modules/VersionModule.sol";
 
-abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage {
-    /**
-     * @notice
-     * Get the current version of the smart contract
-     */
-    string public constant VERSION = "0.3.0";
-
+abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, VersionModule {
     // Events
     event DebtSet(address indexed smartContract);
     event CreditEventsSet(address indexed smartContract);

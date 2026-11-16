@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineBase** | Implementation | IDebtEngine, DebtEngineInvariantStorage |||
+| **DebtEngineBase** | Implementation | IDebtEngine, DebtEngineInvariantStorage, VersionModule |||
 | └ | debt | External ❗️ |   |NO❗️ |
 | └ | debt | Public ❗️ |   |NO❗️ |
 | └ | creditEvents | External ❗️ |   |NO❗️ |

@@ -159,7 +159,7 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineBase** | Implementation | IDebtEngine, DebtEngineInvariantStorage |||
+| **DebtEngineBase** | Implementation | IDebtEngine, DebtEngineInvariantStorage, VersionModule |||
 | └ | debt | External ❗️ |   |NO❗️ |
 | └ | debt | Public ❗️ |   |NO❗️ |
 | └ | creditEvents | External ❗️ |   |NO❗️ |
@@ -173,6 +173,15 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 | └ | _authorizeSetDebt | Internal 🔒 | 🛑  | |
 | └ | _authorizeSetCreditEvents | Internal 🔒 | 🛑  | |
 | └ | _msgSender | Internal 🔒 |   | |
+
+#### VersionModule
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **VersionModule** | Implementation |  |||
+| └ | version | Public ❗️ |   |NO❗️ |
 
 #### DebtEngineAccessControl
 

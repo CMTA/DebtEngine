@@ -97,6 +97,10 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
 
     function testDeploy() public virtual;
 
+    function testVersion() public view {
+        assertEq(debtEngine.version(), "0.3.0");
+    }
+
     /*//////////////////////////////////////////////////////////////
               Set/Get Debt
     ///////////////////////////////////////*/

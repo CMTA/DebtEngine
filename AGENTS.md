@@ -44,14 +44,17 @@ DebtEngine is an external engine for the [CMTAT](https://github.com/CMTA/CMTAT) 
 - **Getters:** `debt()` / `creditEvents()` (for the caller), `debt(address)` / `creditEvents(address)`, and `hasDebt(address)` / `hasCreditEvents(address)` to distinguish "never set" from "set to empty".
 - **Setters:** `setDebt`, `setCreditEvents`, `setDebtBatch`, `setCreditEventsBatch`; emit `DebtSet` / `CreditEventsSet`; reject `address(0)` targets; batches capped by `MAX_BATCH_SIZE = 500` and require equal array lengths.
 - **Errors** live in `DebtEngineInvariantStorage` (abstract).
+- **Version:** `version()` comes from `VersionModule`, inherited by `DebtEngineBase` (there is no public `VERSION` getter).
 - **Not upgradeable:** plain constructor deployment, no proxy.
 
 ## File tree
 
 ```
 src/
-├── DebtEngineBase.sol                    # abstract engine: storage, getters/setters, events, VERSION, auth hooks
+├── DebtEngineBase.sol                    # abstract engine: storage, getters/setters, events, auth hooks
 ├── DebtEngineInvariantStorage.sol        # abstract: custom errors
+├── modules/
+│   └── VersionModule.sol                 # abstract: private VERSION constant + version() getter (CMTAT BaseModule pattern)
 └── deployment/
     ├── DebtEngineAccessControl.sol       # RBAC variant (AccessControl + ERC2771Context)
     └── DebtEngineOwnable.sol             # Ownable variant (Ownable + ERC2771Context)
@@ -96,7 +99,7 @@ bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritanc
 
 ## Conventions
 
-- **Versioning:** bump `VERSION` in `src/DebtEngineBase.sol` and the README compatibility table; follow the checklist in `CHANGELOG.md`.
+- **Versioning:** bump the private `VERSION` constant in `src/modules/VersionModule.sol`, the `testVersion` assertion in `test/DebtEngineBase.t.sol` and the README compatibility table; follow the checklist in `CHANGELOG.md`.
 - **Changelog tags:** keepachangelog types plus `breaking change` (storage / external engine interface), `Dependencies`, `Documentation`, `Testing`.
 - **New authorization policy:** add a deployment contract under `src/deployment/` that implements both `_authorize*` hooks and the `_msgSender` / `_msgData` / `_contextSuffixLength` overrides; add a test contract that extends `DebtEngineBaseTest`.
 - **Must not break:** the `IDebtEngine` interface (CMTAT calls it), zero-address checks, `MAX_BATCH_SIZE` and length checks on batches, event emission on every write.

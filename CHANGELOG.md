@@ -24,7 +24,7 @@ Custom changelog tag
 
 > Before a new release, perform the following tasks
 
-- Code: Update the version name in [./src/DebtEngineBase.sol](./src/DebtEngineBase.sol), constant `VERSION`, and the compatibility table in the [README](./README.md)
+- Code: Update the version name in the `Version` module [./src/modules/VersionModule.sol](./src/modules/VersionModule.sol), constant `VERSION`, and the compatibility table in the [README](./README.md)
 - Run linter
 
 > forge fmt
@@ -40,9 +40,10 @@ Custom changelog tag
 
   - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/tools](./doc/tools)
 
-  > slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/slither-report.md
-  >
-  > aderyn . -o doc/tools/aderyn-report.md
+  ```bash
+  slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/slither-report.md
+  aderyn . -o doc/tools/aderyn-report.md
+  ```
 
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script) (output in [./doc/surya](./doc/surya))
 
@@ -52,22 +53,58 @@ Custom changelog tag
 
 ## v0.3.0
 
-- Update CMTAT library to v3.2.0-rc2
-- Add `DebtSet` and `CreditEventsSet` events on state changes
-- Add zero-address validation on `smartContract_` parameter
-- Add `hasDebt(address)` and `hasCreditEvents(address)` view functions
-- Add `MAX_BATCH_SIZE` (500) limit on `setDebtBatch` and `setCreditEventsBatch`
-- Refactor into abstract `DebtEngineBase` with pluggable authorization hooks
+Branch: `dev` (not yet released, commit hash to be added on release)
+
+### Breaking change
+
+- Split the single `DebtEngine` contract into an abstract `DebtEngineBase` and two deployment contracts, `DebtEngineAccessControl` and `DebtEngineOwnable`; deploy one of them instead of `DebtEngine`.
+- Replace the public `VERSION` constant with a `version()` function, provided by the new `VersionModule` (same pattern as CMTAT `BaseModule`); integrators reading `VERSION()` must call `version()` instead.
+- Move `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE` from `DebtEngineInvariantStorage` to `DebtEngineAccessControl`.
+
+### Added
+
 - Add `DebtEngineAccessControl` deployment variant (OpenZeppelin `AccessControl`)
 - Add `DebtEngineOwnable` deployment variant (OpenZeppelin `Ownable`)
+- Add `VersionModule` (`src/modules/VersionModule.sol`) exposing `version()`
+- Add `DebtSet` and `CreditEventsSet` events on state changes
+- Add zero-address validation on `smartContract_` parameter (`SmartContractWithAddressZeroNotAllowed`)
+- Add `hasDebt(address)` and `hasCreditEvents(address)` view functions
+- Add `MAX_BATCH_SIZE` (500) limit on `setDebtBatch` and `setCreditEventsBatch` (`BatchSizeTooLarge`)
+
+### Changed
+
+- Refactor into abstract `DebtEngineBase` with pluggable authorization hooks (`_authorizeSetDebt`, `_authorizeSetCreditEvents`)
 - Move ERC-2771 support from base to deployment contracts
-- Document `hasRole` super-admin behavior in NatSpec and README
-- Document ERC-2771 forwarder immutability in README
+- Change `DebtEngineInvariantStorage` to `abstract contract`
+- Pin compiler settings in `foundry.toml`: solc `0.8.33`, optimizer (200 runs), EVM version `prague`
+
+### Fixed
+
 - Fix NatSpec comments (`/*` to `/**`, self-referencing batch docs)
 - Fix function modifier ordering (`internal view override`)
+
+### Removed
+
 - Remove redundant memory variables in getter functions
 - Remove unused `ICMTATDebt` and `ICMTATCreditEvents` imports
-- Change `DebtEngineInvariantStorage` to `abstract contract`
+
+### Dependencies
+
+- Update CMTAT library to v3.2.0-rc2
+
+### Documentation
+
+- Document `hasRole` super-admin behavior in NatSpec and README
+- Document ERC-2771 forwarder immutability in README
+- Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
+- Move the Slither report to `doc/tools/slither-report.md` and add an Aderyn report (`doc/tools/aderyn-report.md`)
+- Add agent guide (`CLAUDE.md` / `AGENTS.md`) and `doc/tools/CLAUDE_ANALYSIS_SUMMARY.md`
+- Adapt the release checklist to this project's commands and directories
+
+### Testing
+
+- Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
+- Add `version()` test
 
 ## v0.2.0
 
