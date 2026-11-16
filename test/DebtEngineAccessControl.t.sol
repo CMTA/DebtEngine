@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {DebtEngineBaseTest} from "./DebtEngineBase.t.sol";
 import {DebtEngineAccessControl} from "../src/deployment/DebtEngineAccessControl.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
+import {IAccessControlEnumerable} from "OZ/access/extensions/IAccessControlEnumerable.sol";
 import {ICMTATDebt, ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
 
 contract DebtEngineAccessControlTest is DebtEngineBaseTest {
@@ -146,5 +147,64 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         _expectUnauthorizedCreditEventsRevert(attacker);
         vm.prank(attacker);
         debtEngine.setCreditEvents(testContract, creditEventSample);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              RBAC-specific: role separation
+    ///////////////////////////////////////*/
+
+    function testDebtManagerCannotSetCreditEvents() public {
+        vm.prank(admin);
+        debtEngineAc.grantRole(DEBT_MANAGER_ROLE, attacker);
+
+        _expectUnauthorizedCreditEventsRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.setCreditEvents(testContract, creditEventSample);
+    }
+
+    function testCreditEventsManagerCannotSetDebt() public {
+        vm.prank(admin);
+        debtEngineAc.grantRole(CREDIT_EVENTS_MANAGER_ROLE, attacker);
+
+        _expectUnauthorizedDebtRevert(attacker);
+        vm.prank(attacker);
+        debtEngine.setDebt(testContract, debtSample);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              RBAC-specific: enumeration
+    ///////////////////////////////////////*/
+
+    function testRoleMembersAreEnumerable() public {
+        assertEq(debtEngineAc.getRoleMemberCount(debtEngineAc.DEFAULT_ADMIN_ROLE()), 1);
+        assertEq(debtEngineAc.getRoleMember(debtEngineAc.DEFAULT_ADMIN_ROLE(), 0), admin);
+
+        vm.prank(admin);
+        debtEngineAc.grantRole(DEBT_MANAGER_ROLE, attacker);
+        assertEq(debtEngineAc.getRoleMemberCount(DEBT_MANAGER_ROLE), 1);
+        assertEq(debtEngineAc.getRoleMember(DEBT_MANAGER_ROLE, 0), attacker);
+
+        vm.prank(admin);
+        debtEngineAc.revokeRole(DEBT_MANAGER_ROLE, attacker);
+        assertEq(debtEngineAc.getRoleMemberCount(DEBT_MANAGER_ROLE), 0);
+    }
+
+    function testImplicitAdminIsNotEnumerated() public view {
+        // The admin passes every hasRole check but is not listed as a role member
+        assertTrue(debtEngineAc.hasRole(DEBT_MANAGER_ROLE, admin));
+        assertTrue(debtEngineAc.hasRole(CREDIT_EVENTS_MANAGER_ROLE, admin));
+        assertEq(debtEngineAc.getRoleMemberCount(DEBT_MANAGER_ROLE), 0);
+        assertEq(debtEngineAc.getRoleMemberCount(CREDIT_EVENTS_MANAGER_ROLE), 0);
+    }
+
+    function testSupportsInterface() public view {
+        assertTrue(debtEngineAc.supportsInterface(type(IAccessControlEnumerable).interfaceId));
+        assertTrue(debtEngineAc.supportsInterface(type(IAccessControl).interfaceId));
+        assertFalse(debtEngineAc.supportsInterface(0xffffffff));
+    }
+
+    function testRoleConstants() public view {
+        assertEq(debtEngineAc.DEBT_MANAGER_ROLE(), DEBT_MANAGER_ROLE);
+        assertEq(debtEngineAc.CREDIT_EVENTS_MANAGER_ROLE(), CREDIT_EVENTS_MANAGER_ROLE);
     }
 }

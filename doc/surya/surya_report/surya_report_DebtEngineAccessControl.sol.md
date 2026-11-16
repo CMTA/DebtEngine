@@ -15,10 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineAccessControl** | Implementation | DebtEngineBase, AccessControl, ERC2771Context |||
+| **DebtEngineAccessControl** | Implementation | DebtEngineBase, AccessControlEnumerable, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
-| └ | _authorizeSetDebt | Internal 🔒 |   | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyRole |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyRole |
 | └ | hasRole | Public ❗️ |   |NO❗️ |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |

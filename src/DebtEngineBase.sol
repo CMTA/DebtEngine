@@ -155,8 +155,19 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
 
     /* ============ AUTHORIZATION HOOKS ============ */
 
-    function _authorizeSetDebt() internal virtual;
-    function _authorizeSetCreditEvents() internal virtual;
+    /**
+     * @notice Authorization hook invoked before any debt change (`setDebt`, `setDebtBatch`).
+     * @dev Must revert if the caller is not allowed. Implemented by each deployment contract
+     * with its access-control policy; `view` guarantees the check cannot mutate state.
+     */
+    function _authorizeSetDebt() internal view virtual;
+
+    /**
+     * @notice Authorization hook invoked before any credit-events change (`setCreditEvents`, `setCreditEventsBatch`).
+     * @dev Must revert if the caller is not allowed. Implemented by each deployment contract
+     * with its access-control policy; `view` guarantees the check cannot mutate state.
+     */
+    function _authorizeSetCreditEvents() internal view virtual;
 
     /* ============ CONTEXT ============ */
 

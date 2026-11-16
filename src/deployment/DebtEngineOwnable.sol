@@ -2,21 +2,23 @@
 pragma solidity ^0.8.20;
 
 import {Ownable} from "OZ/access/Ownable.sol";
+import {Ownable2Step} from "OZ/access/Ownable2Step.sol";
 import {ERC2771Context, Context} from "OZ/metatx/ERC2771Context.sol";
 import {DebtEngineBase} from "../DebtEngineBase.sol";
 
-contract DebtEngineOwnable is DebtEngineBase, Ownable, ERC2771Context {
+/**
+ * @notice DebtEngine deployment where a single owner manages both debt and credit events.
+ * @dev Ownership transfer is two-step (`transferOwnership` then `acceptOwnership` by the new owner).
+ * Every authorization hook collapses to `onlyOwner`, so this variant cannot separate duties.
+ */
+contract DebtEngineOwnable is DebtEngineBase, Ownable2Step, ERC2771Context {
     constructor(address owner, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) Ownable(owner) {}
 
     /* ============ AUTHORIZATION HOOKS ============ */
 
-    function _authorizeSetDebt() internal view override {
-        _checkOwner();
-    }
+    function _authorizeSetDebt() internal view virtual override onlyOwner {}
 
-    function _authorizeSetCreditEvents() internal view override {
-        _checkOwner();
-    }
+    function _authorizeSetCreditEvents() internal view virtual override onlyOwner {}
 
     /*//////////////////////////////////////////////////////////////
                            ERC2771

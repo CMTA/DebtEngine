@@ -63,8 +63,8 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Added
 
-- Add `DebtEngineAccessControl` deployment variant (OpenZeppelin `AccessControl`)
-- Add `DebtEngineOwnable` deployment variant (OpenZeppelin `Ownable`)
+- Add `DebtEngineAccessControl` deployment variant (OpenZeppelin `AccessControlEnumerable`, role holders listable on-chain)
+- Add `DebtEngineOwnable` deployment variant (OpenZeppelin `Ownable2Step`, two-step ownership transfer)
 - Add `VersionModule` (`src/modules/VersionModule.sol`) exposing `version()`
 - Add `DebtSet` and `CreditEventsSet` events on state changes
 - Add zero-address validation on `smartContract_` parameter (`SmartContractWithAddressZeroNotAllowed`)
@@ -75,6 +75,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 - Refactor into abstract `DebtEngineBase` with pluggable authorization hooks (`_authorizeSetDebt`, `_authorizeSetCreditEvents`)
 - Move ERC-2771 support from base to deployment contracts
+- Declare the authorization hooks `internal view virtual` and implement every override with an empty body guarded by `onlyRole(...)` / `onlyOwner` instead of direct `_checkRole` / `_checkOwner` calls (no behaviour change)
 - Change `DebtEngineInvariantStorage` to `abstract contract`
 - Pin compiler settings in `foundry.toml`: solc `0.8.33`, optimizer (200 runs), EVM version `prague`
 
@@ -96,6 +97,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 - Document `hasRole` super-admin behavior in NatSpec and README
 - Document ERC-2771 forwarder immutability in README
+- Document the authorization-hook convention and a capability → role table per deployment variant in README
 - Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
 - Move the Slither report to `doc/tools/slither-report.md` and add an Aderyn report (`doc/tools/aderyn-report.md`)
 - Add agent guide (`CLAUDE.md` / `AGENTS.md`) and `doc/tools/CLAUDE_ANALYSIS_SUMMARY.md`
@@ -105,6 +107,9 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
 - Add `version()` test
+- Add role-separation tests (`DEBT_MANAGER_ROLE` cannot set credit events and vice versa) and a role-constant test for `DebtEngineAccessControl`
+- Add role-enumeration, implicit-admin-not-enumerated and ERC-165 tests for `DebtEngineAccessControl`
+- Add two-step ownership handover tests for `DebtEngineOwnable`
 - Adapt the CMTAT deployment in the test setup to CMTAT v3.0.0 (`BaseModuleAttributes` renamed to `ExtraInformationAttributes`)
 
 ## v0.2.0

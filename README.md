@@ -63,8 +63,8 @@ The DebtEngine uses a layered architecture:
 
 - **`DebtEngineBase`** (abstract) — contains all business logic, mappings, events, and authorization hooks. Does not depend on any specific access control mechanism or meta-transaction standard.
 - **Deployment contracts** — concrete contracts that wire in access control and ERC-2771 support:
-  - **`DebtEngineAccessControl`** — uses OpenZeppelin `AccessControl` (RBAC) with granular `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE`.
-  - **`DebtEngineOwnable`** — uses OpenZeppelin `Ownable` (single owner controls everything).
+  - **`DebtEngineAccessControl`** — uses OpenZeppelin `AccessControlEnumerable` (RBAC, role holders listable on-chain) with granular `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE`.
+  - **`DebtEngineOwnable`** — uses OpenZeppelin `Ownable2Step` (single owner controls everything; two-step ownership transfer).
 
 ## Functions
 
@@ -90,7 +90,14 @@ The DebtEngine uses a layered architecture:
 
 ## Access Control
 
-Authorization is pluggable via two internal hooks (`_authorizeSetDebt` and `_authorizeSetCreditEvents`) defined in `DebtEngineBase`. Each deployment variant implements these hooks differently.
+Authorization is pluggable via two `internal view virtual` hooks (`_authorizeSetDebt` and `_authorizeSetCreditEvents`) declared without a body in `DebtEngineBase`: the base decides **what** is protected, each deployment contract decides **who** may do it. Each override has an empty body and carries the check in its modifier (`onlyRole(...)` or `onlyOwner`), which resolves the caller through `_msgSender()` (ERC-2771 aware).
+
+| Capability | Functions | Hook | `DebtEngineAccessControl` | `DebtEngineOwnable` |
+| --- | --- | --- | --- | --- |
+| Debt management | `setDebt`, `setDebtBatch` | `_authorizeSetDebt` | `DEBT_MANAGER_ROLE` (or `DEFAULT_ADMIN_ROLE`) | owner |
+| Credit-events management | `setCreditEvents`, `setCreditEventsBatch` | `_authorizeSetCreditEvents` | `CREDIT_EVENTS_MANAGER_ROLE` (or `DEFAULT_ADMIN_ROLE`) | owner |
+
+The variant is chosen at deployment: the two contracts are not interchangeable at a deployed address, and the policy cannot be swapped afterwards. The pattern makes access control pluggable, not more decentralised: a single admin or owner key can still rewrite every debt and credit-event record.
 
 ### DebtEngineAccessControl (RBAC)
 
@@ -100,11 +107,13 @@ Authorization is pluggable via two internal hooks (`_authorizeSetDebt` and `_aut
 | `DEBT_MANAGER_ROLE` | Can call `setDebt` and `setDebtBatch` |
 | `CREDIT_EVENTS_MANAGER_ROLE` | Can call `setCreditEvents` and `setCreditEventsBatch` |
 
-> **Note:** The `DEFAULT_ADMIN_ROLE` is a super-admin. Any account holding this role is treated as holding every role implicitly. This is **not** reflected by `getRoleMemberCount` or `getRoleMembers`.
+> **Note:** The `DEFAULT_ADMIN_ROLE` is a super-admin. Any account holding this role is treated as holding every role implicitly. This implicit membership is not recorded: `getRoleMember`, `getRoleMemberCount` and `getRoleMembers` (from `AccessControlEnumerable`) do not list the admin under `DEBT_MANAGER_ROLE` or `CREDIT_EVENTS_MANAGER_ROLE`, and no `RoleGranted` event is emitted for it, so tools listing role holders will not show the admin. Role separation therefore constrains operators, never the admin.
 
 ### DebtEngineOwnable (Single Owner)
 
-The owner can call all restricted functions. Ownership can be transferred via `transferOwnership` or permanently renounced via `renounceOwnership`.
+The owner can call all restricted functions. Ownership transfer is two-step (`Ownable2Step`): `transferOwnership` only records a `pendingOwner`, and control moves when that address calls `acceptOwnership`, so a mistyped address cannot take over the contract. Ownership can also be permanently renounced via `renounceOwnership`.
+
+Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g. let one operator manage debt but not credit events); use `DebtEngineAccessControl` when that is required.
 
 ## Compatibility
 
@@ -170,8 +179,8 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 | └ | setCreditEvents | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setDebtBatch | External ❗️ | 🛑  | onlyDebtManager |
-| └ | _authorizeSetDebt | Internal 🔒 | 🛑  | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 | 🛑  | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 
 #### VersionModule
@@ -189,10 +198,10 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineAccessControl** | Implementation | DebtEngineBase, AccessControl, ERC2771Context |||
+| **DebtEngineAccessControl** | Implementation | DebtEngineBase, AccessControlEnumerable, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
-| └ | _authorizeSetDebt | Internal 🔒 |   | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyRole |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyRole |
 | └ | hasRole | Public ❗️ |   |NO❗️ |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
@@ -204,10 +213,10 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable, ERC2771Context |||
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
-| └ | _authorizeSetDebt | Internal 🔒 |   | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyOwner |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |

@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.20;
 
-import {AccessControl} from "OZ/access/AccessControl.sol";
+import {AccessControl, IAccessControl} from "OZ/access/AccessControl.sol";
+import {AccessControlEnumerable} from "OZ/access/extensions/AccessControlEnumerable.sol";
 import {ERC2771Context, Context} from "OZ/metatx/ERC2771Context.sol";
 import {DebtEngineBase} from "../DebtEngineBase.sol";
 
-contract DebtEngineAccessControl is DebtEngineBase, AccessControl, ERC2771Context {
+/**
+ * @notice DebtEngine deployment with role-based access control.
+ * @dev Uses `AccessControlEnumerable` so role holders can be listed on-chain.
+ * `DEBT_MANAGER_ROLE` gates debt changes, `CREDIT_EVENTS_MANAGER_ROLE` gates credit-events changes.
+ */
+contract DebtEngineAccessControl is DebtEngineBase, AccessControlEnumerable, ERC2771Context {
     bytes32 public constant CREDIT_EVENTS_MANAGER_ROLE = keccak256("CREDIT_EVENTS_MANAGER_ROLE");
     bytes32 public constant DEBT_MANAGER_ROLE = keccak256("DEBT_MANAGER_ROLE");
 
@@ -18,13 +24,9 @@ contract DebtEngineAccessControl is DebtEngineBase, AccessControl, ERC2771Contex
 
     /* ============ AUTHORIZATION HOOKS ============ */
 
-    function _authorizeSetDebt() internal view override {
-        _checkRole(DEBT_MANAGER_ROLE);
-    }
+    function _authorizeSetDebt() internal view virtual override onlyRole(DEBT_MANAGER_ROLE) {}
 
-    function _authorizeSetCreditEvents() internal view override {
-        _checkRole(CREDIT_EVENTS_MANAGER_ROLE);
-    }
+    function _authorizeSetCreditEvents() internal view virtual override onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {}
 
     /* ============ ACCESS CONTROL ============ */
 
@@ -35,10 +37,16 @@ contract DebtEngineAccessControl is DebtEngineBase, AccessControl, ERC2771Contex
      * Any account holding `DEFAULT_ADMIN_ROLE` is considered to hold every role,
      * even if it was not explicitly granted via `grantRole`.
      * This means `hasRole(ANY_ROLE, admin)` returns `true` for the admin.
-     * `getRoleMemberCount` and `getRoleMembers` (if using `AccessControlEnumerable`)
-     * will NOT reflect this implicit membership.
+     * `getRoleMember`, `getRoleMemberCount` and `getRoleMembers` will NOT reflect
+     * this implicit membership: the admin is not listed as a holder of the other roles.
      */
-    function hasRole(bytes32 role, address account) public view virtual override returns (bool) {
+    function hasRole(bytes32 role, address account)
+        public
+        view
+        virtual
+        override(AccessControl, IAccessControl)
+        returns (bool)
+    {
         // The Default Admin has all roles
         if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {
             return true;

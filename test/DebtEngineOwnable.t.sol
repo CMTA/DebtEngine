@@ -87,12 +87,25 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
               Ownable-specific: transferOwnership, renounceOwnership
     ///////////////////////////////////////*/
 
-    function testTransferOwnership() public {
+    function testTransferOwnershipIsTwoStep() public {
         address newOwner = address(0x99);
 
         vm.prank(admin);
         debtEngineOwn.transferOwnership(newOwner);
+
+        // Step 1 only proposes: control has not moved yet
+        assertEq(debtEngineOwn.owner(), admin);
+        assertEq(debtEngineOwn.pendingOwner(), newOwner);
+
+        vm.prank(newOwner);
+        _expectUnauthorizedDebtRevert(newOwner);
+        debtEngine.setDebt(testContract, debtSample);
+
+        // Step 2: the pending owner accepts
+        vm.prank(newOwner);
+        debtEngineOwn.acceptOwnership();
         assertEq(debtEngineOwn.owner(), newOwner);
+        assertEq(debtEngineOwn.pendingOwner(), ADDRESS_ZERO);
 
         // New owner can set debt
         vm.prank(newOwner);
@@ -105,6 +118,16 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
         vm.prank(admin);
         _expectUnauthorizedDebtRevert(admin);
         debtEngine.setDebt(testContract, debtSample);
+    }
+
+    function testOnlyPendingOwnerCanAcceptOwnership() public {
+        vm.prank(admin);
+        debtEngineOwn.transferOwnership(address(0x99));
+
+        vm.prank(attacker);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, attacker));
+        debtEngineOwn.acceptOwnership();
+        assertEq(debtEngineOwn.owner(), admin);
     }
 
     function testRenounceOwnership() public {

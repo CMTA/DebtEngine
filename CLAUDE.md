@@ -38,8 +38,8 @@ DebtEngine is an external engine for the [CMTAT](https://github.com/CMTA/CMTAT) 
 ## Key concepts
 
 - **Abstract base + deployment variants:** `DebtEngineBase` holds all storage and logic; authorization is delegated to two hooks, `_authorizeSetDebt()` and `_authorizeSetCreditEvents()`, which must revert when the caller is not allowed (used by the `onlyDebtManager` / `onlyCreditEventsManager` modifiers).
-- **`DebtEngineAccessControl`** (RBAC, OpenZeppelin `AccessControl`): roles `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE`; `hasRole` is overridden so `DEFAULT_ADMIN_ROLE` implicitly holds every role. Constructor rejects a zero `admin`.
-- **`DebtEngineOwnable`** (OpenZeppelin `Ownable`): the owner is the only writer for both debt and credit events.
+- **`DebtEngineAccessControl`** (RBAC, OpenZeppelin `AccessControlEnumerable`): roles `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE`; `hasRole` is overridden so `DEFAULT_ADMIN_ROLE` implicitly holds every role (this implicit membership is not listed by `getRoleMember*`). Constructor rejects a zero `admin`.
+- **`DebtEngineOwnable`** (OpenZeppelin `Ownable2Step`): the owner is the only writer for both debt and credit events; ownership transfer requires `acceptOwnership` by the new owner.
 - **ERC-2771 meta-transactions:** only the deployment contracts inherit `ERC2771Context`; the base defines a virtual `_msgSender()` returning `msg.sender`. The forwarder is set in the constructor and is **immutable**; `address(0)` disables it.
 - **Getters:** `debt()` / `creditEvents()` (for the caller), `debt(address)` / `creditEvents(address)`, and `hasDebt(address)` / `hasCreditEvents(address)` to distinguish "never set" from "set to empty".
 - **Setters:** `setDebt`, `setCreditEvents`, `setDebtBatch`, `setCreditEventsBatch`; emit `DebtSet` / `CreditEventsSet`; reject `address(0)` targets; batches capped by `MAX_BATCH_SIZE = 500` and require equal array lengths.
@@ -56,8 +56,8 @@ src/
 ├── modules/
 │   └── VersionModule.sol                 # abstract: private VERSION constant + version() getter (CMTAT BaseModule pattern)
 └── deployment/
-    ├── DebtEngineAccessControl.sol       # RBAC variant (AccessControl + ERC2771Context)
-    └── DebtEngineOwnable.sol             # Ownable variant (Ownable + ERC2771Context)
+    ├── DebtEngineAccessControl.sol       # RBAC variant (AccessControlEnumerable + ERC2771Context)
+    └── DebtEngineOwnable.sol             # single-owner variant (Ownable2Step + ERC2771Context)
 test/
 ├── DebtEngineBase.t.sol                  # abstract shared suite (DebtEngineBaseTest), incl. CMTATStandaloneDebt integration
 ├── DebtEngineAccessControl.t.sol         # role-specific tests for the RBAC variant
@@ -101,6 +101,7 @@ bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritanc
 
 - **Versioning:** bump the private `VERSION` constant in `src/modules/VersionModule.sol`, the `testVersion` assertion in `test/DebtEngineBase.t.sol` and the README compatibility table; follow the checklist in `CHANGELOG.md`.
 - **Changelog tags:** keepachangelog types plus `breaking change` (storage / external engine interface), `Dependencies`, `Documentation`, `Testing`.
+- **Authorization hooks:** declared `internal view virtual` with no body in `DebtEngineBase`; every override keeps `internal view virtual override`, has an empty body and enforces the policy through the modifier (`onlyRole(ROLE)` / `onlyOwner`), never a bare `_checkRole` / `_checkOwner` call. Role constants live in the contract that enforces them (`DebtEngineAccessControl`), never in shared storage. The README access-control table (capability → role per variant) must be updated with any new hook.
 - **New authorization policy:** add a deployment contract under `src/deployment/` that implements both `_authorize*` hooks and the `_msgSender` / `_msgData` / `_contextSuffixLength` overrides; add a test contract that extends `DebtEngineBaseTest`.
 - **Must not break:** the `IDebtEngine` interface (CMTAT calls it), zero-address checks, `MAX_BATCH_SIZE` and length checks on batches, event emission on every write.
 - **Style:** NatSpec with `/** */`, section banners as in existing files, function modifier order `internal view override`; run `forge fmt` before committing.

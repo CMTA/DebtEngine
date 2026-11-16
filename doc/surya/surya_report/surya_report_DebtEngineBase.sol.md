@@ -26,8 +26,8 @@
 | └ | setCreditEvents | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setDebtBatch | External ❗️ | 🛑  | onlyDebtManager |
-| └ | _authorizeSetDebt | Internal 🔒 | 🛑  | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 | 🛑  | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 
 

@@ -15,10 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable, ERC2771Context |||
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
-| └ | _authorizeSetDebt | Internal 🔒 |   | |
-| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyOwner |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
