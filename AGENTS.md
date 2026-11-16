@@ -80,7 +80,7 @@ test/
 - Foundry, solc `0.8.33` (sources use `pragma ^0.8.20`)
 - OpenZeppelin Contracts — submodule `lib/openzeppelin-contracts` (v5.x, commit `fcbae539`)
 - OpenZeppelin Contracts Upgradeable — submodule v5.5.0 (tests, via CMTAT)
-- CMTAT — submodule `lib/CMTAT` at tag `v3.0.0-rc2` (provides `IDebtEngine`, `ICMTATDebt`, and `CMTATStandaloneDebt` for tests)
+- CMTAT — submodule `lib/CMTAT` at tag `v3.0.0` (provides `IDebtEngine`, `ICMTATDebt`, and `CMTATStandaloneDebt` for tests)
 - forge-std v1.13.0
 - npm dev deps: `surya`, `prettier-plugin-solidity`
 

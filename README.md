@@ -241,7 +241,7 @@ The toolchain includes the following components, where the versions are the late
 - Solidity 0.8.20+
 - OpenZeppelin Contracts (submodule) v5.x
 - Tests
-  - [CMTAT v3.2.0-rc2](https://github.com/CMTA/CMTAT)
+  - [CMTAT v3.0.0](https://github.com/CMTA/CMTAT)
   - OpenZeppelin Contracts Upgradeable (submodule) v5.x
 
 The CMTAT contracts and the OpenZeppelin library are included as submodules of the present repository.

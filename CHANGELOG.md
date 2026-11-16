@@ -90,7 +90,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Dependencies
 
-- Update CMTAT library to v3.2.0-rc2
+- Update CMTAT library (submodule) to v3.0.0
 
 ### Documentation
 
@@ -105,6 +105,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
 - Add `version()` test
+- Adapt the CMTAT deployment in the test setup to CMTAT v3.0.0 (`BaseModuleAttributes` renamed to `ExtraInformationAttributes`)
 
 ## v0.2.0
 

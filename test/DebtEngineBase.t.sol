@@ -79,12 +79,13 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
 
         ICMTATConstructor.ERC20Attributes memory erc20Attributes =
             ICMTATConstructor.ERC20Attributes("CMTA Token", "CMTAT", 0);
-        ICMTATConstructor.BaseModuleAttributes memory baseModuleAttributes = ICMTATConstructor.BaseModuleAttributes(
-            "CMTAT_ISIN", IERC1643CMTAT.DocumentInfo("terms", "https://cmta.ch", bytes32(0)), "CMTAT_info"
-        );
+        ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes =
+            ICMTATConstructor.ExtraInformationAttributes(
+                "CMTAT_ISIN", IERC1643CMTAT.DocumentInfo("terms", "https://cmta.ch", bytes32(0)), "CMTAT_info"
+            );
         ICMTATConstructor.Engine memory engines =
             ICMTATConstructor.Engine(IRuleEngine(ADDRESS_ZERO), ISnapshotEngine(ADDRESS_ZERO), IERC1643(ADDRESS_ZERO));
-        cmtat = new CMTATStandaloneDebt(admin, erc20Attributes, baseModuleAttributes, engines);
+        cmtat = new CMTATStandaloneDebt(admin, erc20Attributes, extraInformationAttributes, engines);
     }
 
     function _deployEngine() internal virtual;
