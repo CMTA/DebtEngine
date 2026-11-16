@@ -17,6 +17,5 @@ docs/
 
 .vscode/
 
-#Claude
-./INSTRUCTION.md
-./FEEDBACK.md
+# Drafts: local working notes (feedback, instructions, scratch files), never committed
+/draft/

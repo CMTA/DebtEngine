@@ -78,6 +78,7 @@ test/
 - `doc/script/` — Surya scripts; output in `doc/surya/` (graph, inheritance, report).
 - `AUDIT/` — working deliverables of the v0.3.0 security analysis (published version: `doc/tools/v0.3.0/CLAUDE_AUDIT.md`): `THREAT_MODEL.md` (actors, threat IDs, invariants), `TEST_IMPROVEMENT.md`, `RESULT.md` (findings with PoCs and fix code).
 - `lib/` — git submodules (do not edit).
+- `draft/` — local, git-ignored folder for working notes and scratch files (e.g. `FEEDBACK.md`, `INSTRUCTION.md`). Put drafts there, never at the root; never cite a `draft/` file from a committed file (code, docs, changelog), since readers of the repository cannot open it.
 
 ## Dependencies (tested versions)
 
