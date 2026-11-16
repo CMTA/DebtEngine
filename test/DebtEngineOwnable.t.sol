@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {DebtEngineBaseTest} from "./DebtEngineBase.t.sol";
-import {DebtEngineOwnable} from "../src/access/DebtEngineOwnable.sol";
+import {DebtEngineOwnable} from "../src/deployment/DebtEngineOwnable.sol";
 import {Ownable} from "OZ/access/Ownable.sol";
 import {ICMTATDebt, ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
 
@@ -10,7 +10,7 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
     DebtEngineOwnable private debtEngineOwn;
 
     function _deployEngine() internal override {
-        debtEngineOwn = new DebtEngineOwnable(admin, AddressZero);
+        debtEngineOwn = new DebtEngineOwnable(admin, ADDRESS_ZERO);
         debtEngine = debtEngineOwn;
     }
 
@@ -35,8 +35,8 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
         // owner
         assertEq(debtEngineOwn.owner(), admin);
         // zero address
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, AddressZero));
-        new DebtEngineOwnable(AddressZero, forwarder);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, ADDRESS_ZERO));
+        new DebtEngineOwnable(ADDRESS_ZERO, forwarder);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
     function testRenounceOwnership() public {
         vm.prank(admin);
         debtEngineOwn.renounceOwnership();
-        assertEq(debtEngineOwn.owner(), AddressZero);
+        assertEq(debtEngineOwn.owner(), ADDRESS_ZERO);
 
         // No one can set debt anymore
         vm.prank(admin);

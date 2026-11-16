@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
 pragma solidity ^0.8.20;
 
-import {ERC2771Context} from "OZ/metatx/ERC2771Context.sol";
 import {IDebtEngine} from "CMTAT/interfaces/engine/IDebtEngine.sol";
 import {DebtEngineInvariantStorage} from "./DebtEngineInvariantStorage.sol";
 
-abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771Context {
+abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage {
     /**
      * @notice
      * Get the current version of the smart contract
@@ -24,6 +23,8 @@ abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771
     mapping(address => bool) private _debtSet;
     mapping(address => bool) private _creditEventsSet;
 
+    uint256 public constant MAX_BATCH_SIZE = 500;
+
     modifier onlyDebtManager() {
         _authorizeSetDebt();
         _;
@@ -33,11 +34,6 @@ abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771
         _authorizeSetCreditEvents();
         _;
     }
-
-    /**
-     * Constructor to initialize ERC2771 forwarder
-     */
-    constructor(address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) {}
 
     /*//////////////////////////////////////////////////////////////
                             PUBLIC/EXTERNAL FUNCTIONS
@@ -124,6 +120,9 @@ abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771
         if (smartContracts.length != creditEventsList.length) {
             revert InvalidInputLength();
         }
+        if (smartContracts.length > MAX_BATCH_SIZE) {
+            revert BatchSizeTooLarge(smartContracts.length, MAX_BATCH_SIZE);
+        }
 
         for (uint256 i = 0; i < smartContracts.length; i++) {
             if (smartContracts[i] == address(0)) {
@@ -145,6 +144,9 @@ abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771
         if (smartContracts.length != debts.length) {
             revert InvalidInputLength();
         }
+        if (smartContracts.length > MAX_BATCH_SIZE) {
+            revert BatchSizeTooLarge(smartContracts.length, MAX_BATCH_SIZE);
+        }
 
         for (uint256 i = 0; i < smartContracts.length; i++) {
             if (smartContracts[i] == address(0)) {
@@ -161,28 +163,13 @@ abstract contract DebtEngine is IDebtEngine, DebtEngineInvariantStorage, ERC2771
     function _authorizeSetDebt() internal virtual;
     function _authorizeSetCreditEvents() internal virtual;
 
-    /*//////////////////////////////////////////////////////////////
-                           ERC2771
-    //////////////////////////////////////////////////////////////*/
+    /* ============ CONTEXT ============ */
 
     /**
-     * @dev This surcharge is not necessary if you do not use ERC2771
+     * @dev Returns the sender of the transaction.
+     * Can be overridden to support meta-transactions (ERC2771).
      */
-    function _msgSender() internal view virtual override returns (address sender) {
-        return ERC2771Context._msgSender();
-    }
-
-    /**
-     * @dev This surcharge is not necessary if you do not use ERC2771
-     */
-    function _msgData() internal view virtual override returns (bytes calldata) {
-        return ERC2771Context._msgData();
-    }
-
-    /**
-     * @dev This surcharge is not necessary if you do not use the MetaTxModule
-     */
-    function _contextSuffixLength() internal view virtual override returns (uint256) {
-        return ERC2771Context._contextSuffixLength();
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
     }
 }

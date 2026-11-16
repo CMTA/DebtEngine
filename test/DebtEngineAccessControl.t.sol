@@ -2,21 +2,19 @@
 pragma solidity ^0.8.20;
 
 import {DebtEngineBaseTest} from "./DebtEngineBase.t.sol";
-import {DebtEngineAccessControl} from "../src/access/DebtEngineAccessControl.sol";
+import {DebtEngineAccessControl} from "../src/deployment/DebtEngineAccessControl.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
 import {ICMTATDebt, ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
 
 contract DebtEngineAccessControlTest is DebtEngineBaseTest {
-    DebtEngineAccessControl private debtEngineAC;
+    DebtEngineAccessControl private debtEngineAc;
 
-    bytes32 private DEBT_MANAGER_ROLE;
-    bytes32 private CREDIT_EVENTS_MANAGER_ROLE;
+    bytes32 private constant DEBT_MANAGER_ROLE = keccak256("DEBT_MANAGER_ROLE");
+    bytes32 private constant CREDIT_EVENTS_MANAGER_ROLE = keccak256("CREDIT_EVENTS_MANAGER_ROLE");
 
     function _deployEngine() internal override {
-        debtEngineAC = new DebtEngineAccessControl(admin, AddressZero);
-        debtEngine = debtEngineAC;
-        DEBT_MANAGER_ROLE = debtEngineAC.DEBT_MANAGER_ROLE();
-        CREDIT_EVENTS_MANAGER_ROLE = debtEngineAC.CREDIT_EVENTS_MANAGER_ROLE();
+        debtEngineAc = new DebtEngineAccessControl(admin, ADDRESS_ZERO);
+        debtEngine = debtEngineAc;
     }
 
     function _expectUnauthorizedDebtRevert(address caller) internal override {
@@ -39,13 +37,13 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
 
     function testDeploy() public override {
         address forwarder = address(0x1);
-        debtEngineAC = new DebtEngineAccessControl(admin, forwarder);
+        debtEngineAc = new DebtEngineAccessControl(admin, forwarder);
 
         // Forwarder
-        assertEq(debtEngineAC.isTrustedForwarder(forwarder), true);
+        assertEq(debtEngineAc.isTrustedForwarder(forwarder), true);
         // admin
         vm.expectRevert(abi.encodeWithSelector(AdminWithAddressZeroNotAllowed.selector));
-        new DebtEngineAccessControl(AddressZero, forwarder);
+        new DebtEngineAccessControl(ADDRESS_ZERO, forwarder);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -100,7 +98,7 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         bytes32 role = DEBT_MANAGER_ROLE;
 
         vm.prank(admin);
-        debtEngineAC.grantRole(role, attacker);
+        debtEngineAc.grantRole(role, attacker);
 
         vm.prank(attacker);
         debtEngine.setDebt(testContract, debtSample);
@@ -113,10 +111,10 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         bytes32 role = DEBT_MANAGER_ROLE;
 
         vm.prank(admin);
-        debtEngineAC.grantRole(role, attacker);
+        debtEngineAc.grantRole(role, attacker);
 
         vm.prank(admin);
-        debtEngineAC.revokeRole(role, attacker);
+        debtEngineAc.revokeRole(role, attacker);
 
         _expectUnauthorizedDebtRevert(attacker);
         vm.prank(attacker);
@@ -127,7 +125,7 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         bytes32 role = CREDIT_EVENTS_MANAGER_ROLE;
 
         vm.prank(admin);
-        debtEngineAC.grantRole(role, attacker);
+        debtEngineAc.grantRole(role, attacker);
 
         vm.prank(attacker);
         debtEngine.setCreditEvents(testContract, creditEventSample);
@@ -140,10 +138,10 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
         bytes32 role = CREDIT_EVENTS_MANAGER_ROLE;
 
         vm.prank(admin);
-        debtEngineAC.grantRole(role, attacker);
+        debtEngineAc.grantRole(role, attacker);
 
         vm.prank(admin);
-        debtEngineAC.revokeRole(role, attacker);
+        debtEngineAc.revokeRole(role, attacker);
 
         _expectUnauthorizedCreditEventsRevert(attacker);
         vm.prank(attacker);

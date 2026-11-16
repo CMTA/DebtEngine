@@ -2,8 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {DebtEngine} from "../src/DebtEngine.sol";
-import {IDebtEngine} from "CMTAT/interfaces/engine/IDebtEngine.sol";
+import {DebtEngineBase} from "../src/DebtEngineBase.sol";
 import {ICMTATDebt, ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
 import {IERC1643CMTAT} from "CMTAT/interfaces/tokenization/draft-IERC1643CMTAT.sol";
 import {ISnapshotEngine} from "CMTAT/interfaces/engine/ISnapshotEngine.sol";
@@ -14,13 +13,13 @@ import {CMTATStandaloneDebt} from "CMTAT/deployment/debt/CMTATStandaloneDebt.sol
 import {ICMTATConstructor} from "CMTAT/interfaces/technical/ICMTATConstructor.sol";
 
 abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
-    DebtEngine internal debtEngine;
+    DebtEngineBase internal debtEngine;
     address internal admin = address(0x1);
     address internal attacker = address(0x2);
     address internal testContract = address(0x3);
     address internal testContract1 = address(0x4);
     address internal testContract2 = address(0x5);
-    address internal AddressZero = address(0);
+    address internal constant ADDRESS_ZERO = address(0);
     CMTATStandaloneDebt internal cmtat;
 
     // Sample data for DebtInformation and CreditEvents
@@ -84,7 +83,7 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
             "CMTAT_ISIN", IERC1643CMTAT.DocumentInfo("terms", "https://cmta.ch", bytes32(0)), "CMTAT_info"
         );
         ICMTATConstructor.Engine memory engines =
-            ICMTATConstructor.Engine(IRuleEngine(AddressZero), ISnapshotEngine(AddressZero), IERC1643(AddressZero));
+            ICMTATConstructor.Engine(IRuleEngine(ADDRESS_ZERO), ISnapshotEngine(ADDRESS_ZERO), IERC1643(ADDRESS_ZERO));
         cmtat = new CMTATStandaloneDebt(admin, erc20Attributes, baseModuleAttributes, engines);
     }
 
@@ -223,19 +222,19 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
     function testCannotSetDebtForAddressZero() public {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector));
-        debtEngine.setDebt(AddressZero, debtSample);
+        debtEngine.setDebt(ADDRESS_ZERO, debtSample);
     }
 
     function testCannotSetCreditEventsForAddressZero() public {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(SmartContractWithAddressZeroNotAllowed.selector));
-        debtEngine.setCreditEvents(AddressZero, creditEventSample);
+        debtEngine.setCreditEvents(ADDRESS_ZERO, creditEventSample);
     }
 
     function testCannotSetDebtBatchWithAddressZero() public {
         address[] memory contracts = new address[](2);
         contracts[0] = testContract1;
-        contracts[1] = AddressZero;
+        contracts[1] = ADDRESS_ZERO;
 
         ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](2);
         debts[0] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier1, debtInstrument: debtSample1});
@@ -249,7 +248,7 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
     function testCannotSetCreditEventsBatchWithAddressZero() public {
         address[] memory contracts = new address[](2);
         contracts[0] = testContract1;
-        contracts[1] = AddressZero;
+        contracts[1] = ADDRESS_ZERO;
 
         ICMTATCreditEvents.CreditEvents[] memory creditEventsList = new ICMTATCreditEvents.CreditEvents[](2);
         creditEventsList[0] = creditEventSample1;
@@ -267,14 +266,14 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
     function testSetDebtEmitsEvent() public {
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.DebtSet(testContract);
+        emit DebtEngineBase.DebtSet(testContract);
         debtEngine.setDebt(testContract, debtSample);
     }
 
     function testSetCreditEventsEmitsEvent() public {
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.CreditEventsSet(testContract);
+        emit DebtEngineBase.CreditEventsSet(testContract);
         debtEngine.setCreditEvents(testContract, creditEventSample);
     }
 
@@ -289,9 +288,9 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
 
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.DebtSet(testContract1);
+        emit DebtEngineBase.DebtSet(testContract1);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.DebtSet(testContract2);
+        emit DebtEngineBase.DebtSet(testContract2);
         debtEngine.setDebtBatch(contracts, debts);
     }
 
@@ -306,9 +305,9 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
 
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.CreditEventsSet(testContract1);
+        emit DebtEngineBase.CreditEventsSet(testContract1);
         vm.expectEmit(true, false, false, false);
-        emit DebtEngine.CreditEventsSet(testContract2);
+        emit DebtEngineBase.CreditEventsSet(testContract2);
         debtEngine.setCreditEventsBatch(contracts, creditEventsList);
     }
 

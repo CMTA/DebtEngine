@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./DebtEngine.sol | [object Promise] |
+| ./deployment/DebtEngineOwnable.sol | [object Promise] |
 
 
 ### Contracts Description Table
@@ -15,17 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngine** | Implementation | IDebtEngine, AccessControl, DebtEngineInvariantStorage, ERC2771Context |||
-| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
-| └ | debt | External ❗️ |   |NO❗️ |
-| └ | debt | Public ❗️ |   |NO❗️ |
-| └ | creditEvents | External ❗️ |   |NO❗️ |
-| └ | creditEvents | Public ❗️ |   |NO❗️ |
-| └ | setDebt | External ❗️ | 🛑  | onlyRole |
-| └ | setCreditEvents | External ❗️ | 🛑  | onlyRole |
-| └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyRole |
-| └ | setDebtBatch | External ❗️ | 🛑  | onlyRole |
-| └ | hasRole | Public ❗️ |   |NO❗️ |
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
+| └ | _authorizeSetDebt | Internal 🔒 |   | |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
 | └ | _msgData | Internal 🔒 |   | |
 | └ | _contextSuffixLength | Internal 🔒 |   | |
