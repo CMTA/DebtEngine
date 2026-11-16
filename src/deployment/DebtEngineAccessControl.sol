@@ -37,6 +37,8 @@ contract DebtEngineAccessControl is DebtEngineBase, AccessControlEnumerable, ERC
      * This means `hasRole(ANY_ROLE, admin)` returns `true` for the admin.
      * `getRoleMember`, `getRoleMemberCount` and `getRoleMembers` will NOT reflect
      * this implicit membership: the admin is not listed as a holder of the other roles.
+     * Because OpenZeppelin's `_grantRole` / `_revokeRole` consult this function, granting a role to an admin
+     * is a no-op, and revoking or renouncing one emits `RoleRevoked` while the admin keeps the power.
      */
     function hasRole(bytes32 role, address account)
         public

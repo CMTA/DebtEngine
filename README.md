@@ -115,10 +115,14 @@ The variant is chosen at deployment: the two contracts are not interchangeable a
 | Role | Permissions |
 | --- | --- |
 | `DEFAULT_ADMIN_ROLE` | Implicitly holds all roles. Can grant/revoke roles. |
-| `DEBT_MANAGER_ROLE` | Can call `setDebt` and `setDebtBatch` |
-| `CREDIT_EVENTS_MANAGER_ROLE` | Can call `setCreditEvents` and `setCreditEventsBatch` |
+| `DEBT_MANAGER_ROLE` | Can call `setDebt`, `setDebtBatch` and `clearDebt` |
+| `CREDIT_EVENTS_MANAGER_ROLE` | Can call `setCreditEvents`, `setCreditEventsBatch` and `clearCreditEvents` |
 
 > **Note:** The `DEFAULT_ADMIN_ROLE` is a super-admin. Any account holding this role is treated as holding every role implicitly. This implicit membership is not recorded: `getRoleMember`, `getRoleMemberCount` and `getRoleMembers` (from `AccessControlEnumerable`) do not list the admin under `DEBT_MANAGER_ROLE` or `CREDIT_EVENTS_MANAGER_ROLE`, and no `RoleGranted` event is emitted for it, so tools listing role holders will not show the admin. Role separation therefore constrains operators, never the admin.
+>
+> Granting or revoking a manager role on an account that holds `DEFAULT_ADMIN_ROLE` has no effect: the grant is not recorded, and a revocation (or `renounceRole`) emits `RoleRevoked` while the account keeps the power. When handing admin over, renounce `DEFAULT_ADMIN_ROLE` first and have the new admin grant the manager role afterwards.
+>
+> If the last `DEFAULT_ADMIN_ROLE` holder renounces, roles can no longer be granted or revoked.
 
 ### DebtEngineOwnable (Single Owner)
 
@@ -264,7 +268,7 @@ The abstract base (`DebtEngineBase`) does not depend on `ERC2771Context` directl
 
 At deployment, the parameter `forwarder` inside the constructor has to be set with the address of the forwarder.
 
-> **Important:** The trusted forwarder address is **immutable** — it is set once at construction time and cannot be changed afterward. If the forwarder contract is compromised or needs to be rotated, a new DebtEngine must be deployed. Set the forwarder to `address(0)` to disable meta-transaction support entirely.
+> **Important:** The trusted forwarder address is **immutable** — it is set once at construction time and cannot be changed afterward. If the forwarder contract is compromised or needs to be rotated, a new DebtEngine must be deployed. The forwarder is trusted for every function, including `grantRole`, `revokeRole`, `renounceRole` and ownership transfer: use a forwarder that verifies EIP-712 signatures (e.g. OpenZeppelin `ERC2771Forwarder`). Set the forwarder to `address(0)` to disable meta-transaction support entirely.
 
 Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
 

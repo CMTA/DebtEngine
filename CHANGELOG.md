@@ -106,6 +106,9 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Documentation
 
+- Document that granting a manager role to an admin is a no-op and revoking one emits `RoleRevoked` without effect, with the admin-handover runbook (README, `hasRole` NatSpec)
+- Document that the trusted forwarder is trusted for every function including role management, that renouncing the last admin freezes role management, and list the clear functions in the RBAC role table
+- Add the AI-assisted security analysis in `AUDIT/` (`THREAT_MODEL.md`, `TEST_IMPROVEMENT.md`, `RESULT.md`)
 - Document `hasRole` super-admin behavior in NatSpec and README
 - Document ERC-2771 forwarder immutability in README
 - Document the authorization-hook convention and a capability → role table per deployment variant in README
@@ -118,6 +121,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Testing
 
+- Add `DebtEngineThreatModel.t.sol` from the security analysis in `AUDIT/`: proofs of concept for the role-bookkeeping behaviour of the implicit admin, the trusted forwarder and token-local debt shadowing, plus fuzz tests that every writer rejects unauthorized callers in both variants and that set / clear sequences match a model
 - Split tests into a shared abstract suite (`DebtEngineBaseTest`) run against both deployment variants
 - Add `version()` test
 - Add `clearDebt` / `clearCreditEvents` tests in the shared suite (clear, independence from the other record type and other tokens, clear of an unset record, set after clear, unauthorized caller, CMTAT token reads an empty record) and role-separation tests for the RBAC variant

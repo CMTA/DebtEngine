@@ -63,7 +63,8 @@ test/
 ├── DebtEngineBase.t.sol                  # abstract shared suite (DebtEngineBaseTest), incl. CMTATStandaloneDebt integration
 ├── DebtEngineAccessControl.t.sol         # role-specific tests for the RBAC variant
 ├── DebtEngineOwnable.t.sol               # owner-specific tests for the Ownable variant (incl. ERC-165 / ERC-173)
-└── DebtEngineHarness.t.sol               # test-only engine: proves public functions stay `virtual`, covers the base `_msgSender()`
+├── DebtEngineHarness.t.sol               # test-only engine: proves public functions stay `virtual`, covers the base `_msgSender()`
+└── DebtEngineThreatModel.t.sol           # security-analysis tests: PoCs for AUDIT/RESULT.md findings, fuzzed access-control and set/clear model
 ```
 
 ## Other important files
@@ -75,6 +76,7 @@ test/
 - `doc/coverage/` — lcov + HTML coverage report.
 - `doc/tools/<version>/` — tool reports per release: `slither-report.md`, `aderyn-report.md` and the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` (currently `doc/tools/v0.3.0/`).
 - `doc/script/` — Surya scripts; output in `doc/surya/` (graph, inheritance, report).
+- `AUDIT/` — AI-assisted security analysis of v0.3.0: `THREAT_MODEL.md` (actors, threat IDs, invariants), `TEST_IMPROVEMENT.md`, `RESULT.md` (findings with PoCs and fix code).
 - `lib/` — git submodules (do not edit).
 
 ## Dependencies (tested versions)
@@ -105,6 +107,7 @@ bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritanc
 - **Changelog tags:** keepachangelog types plus `breaking change` (storage / external engine interface), `Dependencies`, `Documentation`, `Testing`.
 - **Authorization hooks:** declared `internal view virtual` with no body in `DebtEngineBase`; every override keeps `internal view virtual override`, has an empty body and enforces the policy through the modifier (`onlyRole(ROLE)` / `onlyOwner`), never a bare `_checkRole` / `_checkOwner` call. Role constants live in the contract that enforces them (`DebtEngineAccessControl`), never in shared storage. The README access-control table (capability → role per variant) must be updated with any new hook.
 - **New authorization policy:** add a deployment contract under `src/deployment/` that implements both `_authorize*` hooks and the `_msgSender` / `_msgData` / `_contextSuffixLength` overrides; add a test contract that extends `DebtEngineBaseTest`.
+- **Security notes (see `AUDIT/RESULT.md`):** an account holding `DEFAULT_ADMIN_ROLE` passes every role check, so granting it a manager role is a silent no-op and revoking one emits `RoleRevoked` without effect (F-1) — when handing admin over, renounce first and let the new admin grant manager roles; the trusted forwarder is trusted for every function, role management included (F-2).
 - **Must not break:** the `IDebtEngine` interface (CMTAT calls it), zero-address checks, `MAX_BATCH_SIZE` and length checks on batches, event emission on every write.
 - **Style:** NatSpec with `/** */`, section banners as in existing files; function attribute order visibility, mutability, `virtual`, `override`, modifiers (e.g. `internal view virtual override onlyOwner`); every public, external and overriding internal function is `virtual`; guards use `require(condition, CustomError(...))` (keep `if`/`revert` only where building the error arguments would cost an external call or storage read, with a comment saying so); every `if`/`for` body in braces; run `forge fmt` before committing.
 - License: MPL-2.0 SPDX header on every source file.
