@@ -78,8 +78,15 @@ The DebtEngine uses a layered architecture:
 | `hasCreditEvents(address)` | External | Public | Returns true if credit events have been explicitly set |
 | `setDebt(address, DebtInformation)` | External | Authorized | Set debt for a contract |
 | `setCreditEvents(address, CreditEvents)` | External | Authorized | Set credit events for a contract |
-| `setDebtBatch(address[], DebtInformation[])` | External | Authorized | Set debt for multiple contracts (max 500) |
-| `setCreditEventsBatch(address[], CreditEvents[])` | External | Authorized | Set credit events for multiple contracts (max 500) |
+| `setDebtBatch(address[], DebtInformation[])` | External | Authorized | Set debt for multiple contracts (at most `MAX_BATCH_SIZE`) |
+| `setCreditEventsBatch(address[], CreditEvents[])` | External | Authorized | Set credit events for multiple contracts (at most `MAX_BATCH_SIZE`) |
+| `MAX_BATCH_SIZE()` | Public | Public | Hard ceiling on batch entries (500) |
+| `version()` | Public | Public | Contract version (`"0.3.0"`) |
+| `supportsInterface(bytes4)` | Public | Public | ERC-165: `IAccessControlEnumerable` / `IAccessControl` (RBAC variant), ERC-173 (Ownable variant), ERC-165 |
+
+All public and external functions are `virtual`. Every write goes through one internal function per record type (`_setDebt`, `_setCreditEvents`), which rejects `address(0)`, stores the record, sets the `has*` flag and emits the event.
+
+> **Batch size in practice:** `MAX_BATCH_SIZE` is a ceiling, not a target. Each entry writes its whole struct to storage. In the test suite a debt record with typical strings costs about 400k gas and a short credit-events record about 71k, so under the Ethereum mainnet per-transaction cap of 16,777,216 gas (EIP-7825) a batch holds roughly 40 debt records or 230 credit-events records. Estimate gas for your actual data before sending a batch.
 
 ## Events
 
@@ -111,7 +118,7 @@ The variant is chosen at deployment: the two contracts are not interchangeable a
 
 ### DebtEngineOwnable (Single Owner)
 
-The owner can call all restricted functions. Ownership transfer is two-step (`Ownable2Step`): `transferOwnership` only records a `pendingOwner`, and control moves when that address calls `acceptOwnership`, so a mistyped address cannot take over the contract. Ownership can also be permanently renounced via `renounceOwnership`.
+The owner can call all restricted functions. Ownership transfer is two-step (`Ownable2Step`): `transferOwnership` only records a `pendingOwner`, and control moves when that address calls `acceptOwnership`, so a mistyped address cannot take over the contract. Ownership can also be permanently renounced via `renounceOwnership`. Deviation from ERC-173 (inherited from OpenZeppelin): `transferOwnership(address(0))` does not renounce ownership, it only cancels a pending transfer; use `renounceOwnership` to renounce. Renouncing freezes every debt and credit-events record permanently.
 
 Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g. let one operator manage debt but not credit events); use `DebtEngineAccessControl` when that is required.
 
@@ -187,6 +194,8 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 | └ | setCreditEvents | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyCreditEventsManager |
 | └ | setDebtBatch | External ❗️ | 🛑  | onlyDebtManager |
+| └ | _setDebt | Internal 🔒 | 🛑  | |
+| └ | _setCreditEvents | Internal 🔒 | 🛑  | |
 | └ | _authorizeSetDebt | Internal 🔒 |   | |
 | └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
 | └ | _msgSender | Internal 🔒 |   | |
@@ -221,8 +230,9 @@ This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.so
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context |||
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context, ERC165 |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | _authorizeSetDebt | Internal 🔒 |   | onlyOwner |
 | └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyOwner |
 | └ | _msgSender | Internal 🔒 |   | |
@@ -255,7 +265,7 @@ Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#recei
 The toolchain includes the following components, where the versions are the latest ones that we tested:
 
 - Foundry
-- Solidity 0.8.20+
+- Solidity 0.8.27+ (sources use `require(condition, CustomError())`; tested with solc 0.8.33)
 - OpenZeppelin Contracts (submodule) v5.x
 - Tests
   - [CMTAT v3.0.0](https://github.com/CMTA/CMTAT)
@@ -274,13 +284,13 @@ forge fmt
 ### Slither
 
 ```bash
-slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/slither-report.md
+slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/v0.3.0/slither-report.md
 ```
 
 ### Aderyn
 
 ```bash
-aderyn . -o doc/tools/aderyn-report.md
+aderyn . -o doc/tools/v0.3.0/aderyn-report.md
 ```
 
 ### Surya

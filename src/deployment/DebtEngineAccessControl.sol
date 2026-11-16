@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
 import {AccessControl, IAccessControl} from "OZ/access/AccessControl.sol";
 import {AccessControlEnumerable} from "OZ/access/extensions/AccessControlEnumerable.sol";
@@ -16,9 +16,7 @@ contract DebtEngineAccessControl is DebtEngineBase, AccessControlEnumerable, ERC
     bytes32 public constant DEBT_MANAGER_ROLE = keccak256("DEBT_MANAGER_ROLE");
 
     constructor(address admin, address forwarderIrrevocable) ERC2771Context(forwarderIrrevocable) {
-        if (admin == address(0)) {
-            revert AdminWithAddressZeroNotAllowed();
-        }
+        require(admin != address(0), AdminWithAddressZeroNotAllowed());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
@@ -58,15 +56,15 @@ contract DebtEngineAccessControl is DebtEngineBase, AccessControlEnumerable, ERC
                            ERC2771
     //////////////////////////////////////////////////////////////*/
 
-    function _msgSender() internal view override(DebtEngineBase, ERC2771Context, Context) returns (address) {
+    function _msgSender() internal view virtual override(DebtEngineBase, ERC2771Context, Context) returns (address) {
         return ERC2771Context._msgSender();
     }
 
-    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+    function _msgData() internal view virtual override(ERC2771Context, Context) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 
-    function _contextSuffixLength() internal view override(ERC2771Context, Context) returns (uint256) {
+    function _contextSuffixLength() internal view virtual override(ERC2771Context, Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
 }

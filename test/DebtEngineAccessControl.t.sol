@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
 import {DebtEngineBaseTest} from "./DebtEngineBase.t.sol";
+import {DebtEngineBase} from "../src/DebtEngineBase.sol";
 import {DebtEngineAccessControl} from "../src/deployment/DebtEngineAccessControl.sol";
 import {IAccessControl} from "OZ/access/IAccessControl.sol";
 import {IAccessControlEnumerable} from "OZ/access/extensions/IAccessControlEnumerable.sol";
@@ -16,6 +17,11 @@ contract DebtEngineAccessControlTest is DebtEngineBaseTest {
     function _deployEngine() internal override {
         debtEngineAc = new DebtEngineAccessControl(admin, ADDRESS_ZERO);
         debtEngine = debtEngineAc;
+    }
+
+    function _deployEngineWithForwarder(address forwarder) internal override returns (DebtEngineBase engine) {
+        DebtEngineAccessControl e = new DebtEngineAccessControl(admin, forwarder);
+        engine = e;
     }
 
     function _expectUnauthorizedDebtRevert(address caller) internal override {

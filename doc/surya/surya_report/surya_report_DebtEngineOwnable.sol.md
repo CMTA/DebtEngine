@@ -15,8 +15,9 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context |||
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context, ERC165 |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | _authorizeSetDebt | Internal 🔒 |   | onlyOwner |
 | └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyOwner |
 | └ | _msgSender | Internal 🔒 |   | |

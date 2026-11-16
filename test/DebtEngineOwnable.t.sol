@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
 import {DebtEngineBaseTest} from "./DebtEngineBase.t.sol";
+import {DebtEngineBase} from "../src/DebtEngineBase.sol";
+import {IERC165} from "OZ/utils/introspection/IERC165.sol";
+
+/// @dev ERC-173 as declared in the standard, to compute its interface id independently.
+interface IERC173 {
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    function owner() external view returns (address);
+
+    function transferOwnership(address newOwner) external;
+}
 import {DebtEngineOwnable} from "../src/deployment/DebtEngineOwnable.sol";
 import {Ownable} from "OZ/access/Ownable.sol";
 import {ICMTATDebt, ICMTATCreditEvents} from "CMTAT/interfaces/tokenization/ICMTAT.sol";
@@ -12,6 +23,11 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
     function _deployEngine() internal override {
         debtEngineOwn = new DebtEngineOwnable(admin, ADDRESS_ZERO);
         debtEngine = debtEngineOwn;
+    }
+
+    function _deployEngineWithForwarder(address forwarder) internal override returns (DebtEngineBase engine) {
+        DebtEngineOwnable e = new DebtEngineOwnable(admin, forwarder);
+        engine = e;
     }
 
     function _expectUnauthorizedDebtRevert(address caller) internal override {
@@ -139,5 +155,33 @@ contract DebtEngineOwnableTest is DebtEngineBaseTest {
         vm.prank(admin);
         _expectUnauthorizedDebtRevert(admin);
         debtEngine.setDebt(testContract, debtSample);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              ERC-165 / ERC-173
+    ///////////////////////////////////////*/
+
+    function testSupportsInterface() public view {
+        assertEq(type(IERC173).interfaceId, bytes4(0x7f5828d0));
+        assertTrue(debtEngineOwn.supportsInterface(type(IERC173).interfaceId));
+        assertTrue(debtEngineOwn.supportsInterface(type(IERC165).interfaceId));
+        assertFalse(debtEngineOwn.supportsInterface(0xffffffff));
+    }
+
+    // ERC-173 says transferOwnership(address(0)) renounces; under Ownable2Step it only cancels a pending transfer
+    function testTransferOwnershipToZeroCancelsPendingTransfer() public {
+        vm.startPrank(admin);
+        debtEngineOwn.transferOwnership(address(0x99));
+        debtEngineOwn.transferOwnership(ADDRESS_ZERO);
+        vm.stopPrank();
+
+        assertEq(debtEngineOwn.owner(), admin);
+        assertEq(debtEngineOwn.pendingOwner(), ADDRESS_ZERO);
+    }
+
+    function testOwnershipTransferredEmittedAtDeployment() public {
+        vm.expectEmit(true, true, false, false);
+        emit IERC173.OwnershipTransferred(ADDRESS_ZERO, admin);
+        new DebtEngineOwnable(admin, ADDRESS_ZERO);
     }
 }

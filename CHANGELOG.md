@@ -38,11 +38,11 @@ Custom changelog tag
 
   > forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
 
-  - Perform an audit with several audit tools (Aderyn and Slither), update the report in the corresponding directory [./doc/tools](./doc/tools)
+  - Perform an audit with several audit tools (Aderyn and Slither), update the report in the release directory `./doc/tools/<version>/` (e.g. [./doc/tools/v0.3.0](./doc/tools/v0.3.0))
 
   ```bash
-  slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/slither-report.md
-  aderyn . -o doc/tools/aderyn-report.md
+  slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/<version>/slither-report.md
+  aderyn . -o doc/tools/<version>/aderyn-report.md
   ```
 
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script) (output in [./doc/surya](./doc/surya))
@@ -70,6 +70,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Add zero-address validation on `smartContract_` parameter (`SmartContractWithAddressZeroNotAllowed`)
 - Add `hasDebt(address)` and `hasCreditEvents(address)` view functions
 - Add `MAX_BATCH_SIZE` (500) limit on `setDebtBatch` and `setCreditEventsBatch` (`BatchSizeTooLarge`)
+- `DebtEngineOwnable` advertises ERC-173 (`0x7f5828d0`) and ERC-165 through `supportsInterface`
 
 ### Changed
 
@@ -78,6 +79,12 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Declare the authorization hooks `internal view virtual` and implement every override with an empty body guarded by `onlyRole(...)` / `onlyOwner` instead of direct `_checkRole` / `_checkOwner` calls (no behaviour change)
 - Change `DebtEngineInvariantStorage` to `abstract contract`
 - Pin compiler settings in `foundry.toml`: solc `0.8.33`, optimizer (200 runs), EVM version `prague`
+- Route every write through one internal function per record type, `_setDebt` and `_setCreditEvents`, which own the zero-address check, the storage write, the `has*` flag and the event.
+  - Each event now has a single emit site, so a future write path cannot forget it.
+  - Gas: single setters +34 gas (one internal call); batches about 670 gas cheaper per entry; deployment about 110k gas cheaper; runtime code 551 bytes smaller.
+- Mark every public and external function of `DebtEngineBase`, and the `_msgSender` / `_msgData` / `_contextSuffixLength` overrides, `virtual` (no gas or size change)
+- Use `require(condition, CustomError())` for all guards instead of `if (...) { revert ...; }`; revert data is unchanged (batch calls +13 gas, as `BatchSizeTooLarge` arguments are now built on the success path)
+- Raise the minimum compiler to `pragma ^0.8.27`, required by `require` with a custom error on the legacy pipeline (0.8.26 fails to compile)
 
 ### Fixed
 
@@ -99,9 +106,10 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Document ERC-2771 forwarder immutability in README
 - Document the authorization-hook convention and a capability → role table per deployment variant in README
 - Document which CMTAT version each DebtEngine release is compatible with and was tested against in README
+- Document that `MAX_BATCH_SIZE` is a ceiling and that the mainnet per-transaction gas cap (EIP-7825) limits batches first (NatSpec and README)
 - Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
-- Move the Slither report to `doc/tools/slither-report.md` and add an Aderyn report (`doc/tools/aderyn-report.md`)
-- Add agent guide (`CLAUDE.md` / `AGENTS.md`) and `doc/tools/CLAUDE_ANALYSIS_SUMMARY.md`
+- Move the tool reports to a per-release directory, `doc/tools/v0.3.0/` (Slither, new Aderyn report, code-quality review `CLAUDE_ANALYSIS.md`); remove the earlier draft AI reviews
+- Add agent guide (`CLAUDE.md` / `AGENTS.md`)
 - Adapt the release checklist to this project's commands and directories
 
 ### Testing
@@ -112,6 +120,12 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Add role-enumeration, implicit-admin-not-enumerated and ERC-165 tests for `DebtEngineAccessControl`
 - Add two-step ownership handover tests for `DebtEngineOwnable`
 - Adapt the CMTAT deployment in the test setup to CMTAT v3.0.0 (`BaseModuleAttributes` renamed to `ExtraInformationAttributes`)
+- Add batch-size tests: `BatchSizeTooLarge` above `MAX_BATCH_SIZE` and success at exactly `MAX_BATCH_SIZE`, for both batch setters
+- Add batch edge-case tests: empty batches emit nothing, a duplicated address keeps the last write and emits twice, more addresses than records reverts with `InvalidInputLength`
+- Add fuzz tests checking that what `setDebt` / `setCreditEvents` write is what the getters return
+- Add ERC-2771 tests: a trusted forwarder relays an authorized signer, cannot relay an unauthorized one, and a non-forwarder cannot spoof the sender by appending an address
+- Add ERC-165 / ERC-173 tests for `DebtEngineOwnable`, including `OwnershipTransferred` at deployment
+- Add `DebtEngineHarness`, a test-only engine that overrides public functions (so removing `virtual` breaks the build) and covers the base `_msgSender()`
 
 ## v0.2.0
 

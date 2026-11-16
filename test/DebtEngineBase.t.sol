@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {DebtEngineBase} from "../src/DebtEngineBase.sol";
@@ -89,6 +89,7 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
     }
 
     function _deployEngine() internal virtual;
+    function _deployEngineWithForwarder(address forwarder) internal virtual returns (DebtEngineBase);
     function _expectUnauthorizedDebtRevert(address caller) internal virtual;
     function _expectUnauthorizedCreditEventsRevert(address caller) internal virtual;
 
@@ -222,6 +223,25 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
         debtEngine.setCreditEventsBatch(contracts, creditEventsList);
+    }
+
+    // More addresses than records: must revert with InvalidInputLength, not an out-of-bounds panic
+    function testSetDebtsBatchMoreAddressesThanRecords() public {
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](1);
+        debts[0] = debtSample;
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        debtEngine.setDebtBatch(_addresses(2), debts);
+    }
+
+    function testSetCreditEventsBatchMoreAddressesThanRecords() public {
+        ICMTATCreditEvents.CreditEvents[] memory creditEventsList = new ICMTATCreditEvents.CreditEvents[](1);
+        creditEventsList[0] = creditEventSample1;
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(InvalidInputLength.selector));
+        debtEngine.setCreditEventsBatch(_addresses(2), creditEventsList);
     }
 
     function testCannotSetDebtForAddressZero() public {
@@ -378,5 +398,193 @@ abstract contract DebtEngineBaseTest is Test, DebtEngineInvariantStorage {
 
         assertEq(debtEngine.hasCreditEvents(testContract1), true);
         assertEq(debtEngine.hasCreditEvents(testContract2), true);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              Batch size limit
+    ///////////////////////////////////////*/
+
+    function _addresses(uint256 n) internal pure returns (address[] memory list) {
+        list = new address[](n);
+        for (uint256 i = 0; i < n; ++i) {
+            list[i] = address(uint160(0x1000 + i));
+        }
+    }
+
+    function testCannotSetDebtBatchAboveMaxSize() public {
+        uint256 n = debtEngine.MAX_BATCH_SIZE() + 1;
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](n);
+        vm.expectRevert(abi.encodeWithSelector(BatchSizeTooLarge.selector, n, n - 1));
+        vm.prank(admin);
+        debtEngine.setDebtBatch(_addresses(n), debts);
+    }
+
+    function testCannotSetCreditEventsBatchAboveMaxSize() public {
+        uint256 n = debtEngine.MAX_BATCH_SIZE() + 1;
+        ICMTATCreditEvents.CreditEvents[] memory list = new ICMTATCreditEvents.CreditEvents[](n);
+        vm.expectRevert(abi.encodeWithSelector(BatchSizeTooLarge.selector, n, n - 1));
+        vm.prank(admin);
+        debtEngine.setCreditEventsBatch(_addresses(n), list);
+    }
+
+    function testSetCreditEventsBatchAtMaxSize() public {
+        uint256 n = debtEngine.MAX_BATCH_SIZE();
+        address[] memory contracts = _addresses(n);
+        ICMTATCreditEvents.CreditEvents[] memory list = new ICMTATCreditEvents.CreditEvents[](n);
+        for (uint256 i = 0; i < n; ++i) {
+            list[i] = creditEventSample1;
+        }
+        vm.prank(admin);
+        debtEngine.setCreditEventsBatch(contracts, list);
+        assertTrue(debtEngine.hasCreditEvents(contracts[0]));
+        assertTrue(debtEngine.hasCreditEvents(contracts[n - 1]));
+    }
+
+    function testSetDebtBatchAtMaxSize() public {
+        uint256 n = debtEngine.MAX_BATCH_SIZE();
+        address[] memory contracts = _addresses(n);
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](n);
+        vm.prank(admin);
+        debtEngine.setDebtBatch(contracts, debts);
+        assertTrue(debtEngine.hasDebt(contracts[0]));
+        assertTrue(debtEngine.hasDebt(contracts[n - 1]));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              Batch edge cases
+    ///////////////////////////////////////*/
+
+    function testEmptyBatchesAreNoOps() public {
+        vm.recordLogs();
+        vm.startPrank(admin);
+        debtEngine.setDebtBatch(new address[](0), new ICMTATDebt.DebtInformation[](0));
+        debtEngine.setCreditEventsBatch(new address[](0), new ICMTATCreditEvents.CreditEvents[](0));
+        vm.stopPrank();
+        assertEq(vm.getRecordedLogs().length, 0);
+    }
+
+    function testDuplicateAddressInDebtBatchLastWriteWins() public {
+        address[] memory contracts = new address[](2);
+        contracts[0] = testContract1;
+        contracts[1] = testContract1;
+        ICMTATDebt.DebtInformation[] memory debts = new ICMTATDebt.DebtInformation[](2);
+        debts[0] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier1, debtInstrument: debtSample1});
+        debts[1] = ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier2, debtInstrument: debtSample2});
+
+        vm.recordLogs();
+        vm.prank(admin);
+        debtEngine.setDebtBatch(contracts, debts);
+
+        assertEq(vm.getRecordedLogs().length, 2);
+        assertEq(debtEngine.debt(testContract1).debtInstrument.interestRate, debtSample2.interestRate);
+    }
+
+    function testSetDebtOverwritesPreviousRecord() public {
+        vm.startPrank(admin);
+        debtEngine.setDebt(testContract, debtSample);
+        debtEngine.setDebt(
+            testContract, ICMTATDebt.DebtInformation({debtIdentifier: debtIdentifier2, debtInstrument: debtSample2})
+        );
+        vm.stopPrank();
+        ICMTATDebt.DebtInformation memory d = debtEngine.debt(testContract);
+        assertEq(d.debtInstrument.interestRate, debtSample2.interestRate);
+        assertEq(d.debtIdentifier.issuerName, debtIdentifier2.issuerName);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              Fuzz: what is written is what is read
+    ///////////////////////////////////////*/
+
+    function testFuzz_SetDebtRoundTrip(
+        address target,
+        uint256 interestRate,
+        uint256 parValue,
+        string calldata issuerName
+    ) public {
+        vm.assume(target != address(0));
+        ICMTATDebt.DebtInformation memory info = debtSample;
+        info.debtInstrument.interestRate = interestRate;
+        info.debtInstrument.parValue = parValue;
+        info.debtIdentifier.issuerName = issuerName;
+
+        vm.prank(admin);
+        debtEngine.setDebt(target, info);
+
+        ICMTATDebt.DebtInformation memory d = debtEngine.debt(target);
+        assertEq(d.debtInstrument.interestRate, interestRate);
+        assertEq(d.debtInstrument.parValue, parValue);
+        assertEq(d.debtIdentifier.issuerName, issuerName);
+        assertTrue(debtEngine.hasDebt(target));
+    }
+
+    function testFuzz_SetCreditEventsRoundTrip(
+        address target,
+        bool flagDefault,
+        bool flagRedeemed,
+        string calldata rating
+    ) public {
+        vm.assume(target != address(0));
+        vm.prank(admin);
+        debtEngine.setCreditEvents(
+            target,
+            ICMTATCreditEvents.CreditEvents({flagDefault: flagDefault, flagRedeemed: flagRedeemed, rating: rating})
+        );
+
+        ICMTATCreditEvents.CreditEvents memory c = debtEngine.creditEvents(target);
+        assertEq(c.flagDefault, flagDefault);
+        assertEq(c.flagRedeemed, flagRedeemed);
+        assertEq(c.rating, rating);
+        assertTrue(debtEngine.hasCreditEvents(target));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              ERC-2771: trusted forwarder
+    ///////////////////////////////////////*/
+
+    address internal constant FORWARDER = address(0xF0);
+
+    function testSetDebtThroughTrustedForwarder() public {
+        DebtEngineBase engine = _deployEngineWithForwarder(FORWARDER);
+        bytes memory data = abi.encodeCall(DebtEngineBase.setDebt, (testContract, debtSample));
+
+        // The forwarder appends the signer: the authorized signer passes
+        vm.prank(FORWARDER);
+        (bool ok,) = address(engine).call(abi.encodePacked(data, admin));
+        assertTrue(ok);
+        assertEq(engine.debt(testContract).debtInstrument.parValue, debtSample.debtInstrument.parValue);
+    }
+
+    function testForwarderCannotRelayUnauthorizedSigner() public {
+        DebtEngineBase engine = _deployEngineWithForwarder(FORWARDER);
+        bytes memory data = abi.encodeCall(DebtEngineBase.setDebt, (testContract, debtSample));
+
+        _expectUnauthorizedDebtRevert(attacker);
+        vm.prank(FORWARDER);
+        (bool ok,) = address(engine).call(abi.encodePacked(data, attacker));
+        assertTrue(ok, "expectRevert: call returns true when the expected revert happened");
+    }
+
+    function testUntrustedCallerCannotSpoofSender() public {
+        DebtEngineBase engine = _deployEngineWithForwarder(FORWARDER);
+        bytes memory data = abi.encodeCall(DebtEngineBase.setDebt, (testContract, debtSample));
+
+        // Appending the admin address from a non-forwarder is ignored: the caller itself is checked
+        _expectUnauthorizedDebtRevert(attacker);
+        vm.prank(attacker);
+        (bool ok,) = address(engine).call(abi.encodePacked(data, admin));
+        assertTrue(ok, "expectRevert: call returns true when the expected revert happened");
+    }
+
+    function testDebtForCallerThroughTrustedForwarder() public {
+        DebtEngineBase engine = _deployEngineWithForwarder(FORWARDER);
+        vm.prank(admin);
+        engine.setDebt(testContract, debtSample);
+
+        vm.prank(FORWARDER);
+        (bool ok, bytes memory ret) =
+            address(engine).staticcall(abi.encodePacked(abi.encodeWithSignature("debt()"), testContract));
+        assertTrue(ok);
+        ICMTATDebt.DebtInformation memory d = abi.decode(ret, (ICMTATDebt.DebtInformation));
+        assertEq(d.debtInstrument.parValue, debtSample.debtInstrument.parValue);
     }
 }
