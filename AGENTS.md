@@ -80,6 +80,7 @@ script/
 - `hardhat.config.js` — Hardhat 2 compilation of `src/` only, same compiler settings as `foundry.toml` (keep them in sync), imports via the Foundry remappings (`@nomicfoundation/hardhat-foundry`); output in `artifacts/` and `cache_hardhat/` (git-ignored).
 - `remappings.txt` — `CMTAT/` → `lib/CMTAT/contracts/`, `OZ/` → `lib/openzeppelin-contracts/contracts/`, `@openzeppelin/contracts-upgradeable/`.
 - `doc/coverage/` — lcov + HTML coverage report.
+- `doc/compilation/v<version>/` — per-release Hardhat and Foundry artifacts and flattened sources of the two deployable contracts (see its README; added for releases, not release candidates).
 - `doc/technical/guides/` — deployment guides (`DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`); each step is run by a test, keep the two in sync.
 - `doc/tools/AUDIT_OVERVIEW.md` — index of every analysis (static analysis, AI reviews, coverage) with their results.
 - `doc/tools/<version>/` — tool reports per release: `slither-report.md` / `aderyn-report.md` with their `*-feedback.md` triage, the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` and the published security audit `CLAUDE_AUDIT.md` (currently `doc/tools/v0.3.0/`).

@@ -49,6 +49,10 @@ Custom changelog tag
 
   > bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritance.sh && bash doc/script/script_surya_report.sh
 
+  - For each new release (not for release candidates), add the Hardhat and Foundry compilation files in [./doc/compilation](./doc/compilation) (see its README)
+
+  > npx hardhat compile --force && forge build --force
+
   - Update changelog
 
 ## v0.3.0
@@ -110,6 +114,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Documentation
 
+- Add the v0.3.0 compilation files in `doc/compilation/v0.3.0/`: Hardhat and Foundry artifacts of `DebtEngineAccessControl` and `DebtEngineOwnable`, and their flattened sources (identical runtime bytecode across the three, metadata aside); restore the release-checklist step
 - Add a deployment guide for CMTAT v3.0.0 debt tokens ([`doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md)): setup choices, roles on the engine and token side, deployment with both variants and with an upgradeable token, read workflow, operations, admin handover and troubleshooting
 - Document that granting a manager role to an admin is a no-op and revoking one emits `RoleRevoked` without effect, with the admin-handover runbook (README, `hasRole` NatSpec)
 - Document that the trusted forwarder is trusted for every function including role management, that renouncing the last admin freezes role management, and list the clear functions in the RBAC role table
