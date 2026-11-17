@@ -63,6 +63,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Added
 
+- Add a Hardhat configuration (`hardhat.config.js`, Hardhat 2 with the Foundry remappings) to compile `src/` with the same settings as Foundry; `npm run compile:hardhat`
 - Add Foundry deployment scripts: `script/DeployDebtEngine.s.sol` (either variant, optional manager roles, post-deployment checks) and `script/ConnectDebtEngine.s.sol` (connects a CMTAT v3.0.0 debt token; refuses when the engine holds no record for the token)
 - Add `DebtEngineAccessControl` deployment variant (OpenZeppelin `AccessControlEnumerable`, role holders listable on-chain)
 - Add `DebtEngineOwnable` deployment variant (OpenZeppelin `Ownable2Step`, two-step ownership transfer)
@@ -103,6 +104,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Dependencies
 
+- Add npm dev dependencies `hardhat` (^2.29.2) and `@nomicfoundation/hardhat-foundry` (^1.2.1)
 - Update CMTAT library (submodule) to v3.0.0
 
 ### Documentation

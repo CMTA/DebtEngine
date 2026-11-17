@@ -3,6 +3,9 @@
 # Compiler files
 cache/
 out/
+# Hardhat build output
+/artifacts/
+/cache_hardhat/
 
 # Ignores development broadcast logs
 !/broadcast

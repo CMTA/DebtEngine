@@ -311,6 +311,17 @@ aderyn . -o doc/tools/v0.3.0/aderyn-report.md
 
 Run the 3 scripts in [./doc/script](./doc/script); the output is written to [./doc/surya](./doc/surya).
 
+### Hardhat
+
+`hardhat.config.js` compiles `src/` with Hardhat 2 and the same settings as `foundry.toml` (solc 0.8.33, optimizer 200 runs, `prague`). Imports are resolved from the Foundry remappings by `@nomicfoundation/hardhat-foundry`, so `forge` must be installed. Tests and scripts stay in Foundry.
+
+```bash
+npm install
+npm run compile:hardhat   # artifacts in artifacts/, cache in cache_hardhat/
+```
+
+The runtime bytecode is identical to Foundry's except for the trailing metadata hash.
+
 ### Deployment
 
 Two Foundry scripts, configured with environment variables (see the [deployment guide](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md#deployment-scripts)):

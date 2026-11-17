@@ -77,6 +77,7 @@ script/
 - `CHANGELOG.md` — release notes, change-type tags and the pre-release checklist.
 - `README.md` — data structures, interface, schemas, toolchain commands.
 - `foundry.toml` — solc `0.8.33`, optimizer 200 runs, `evm_version = prague`.
+- `hardhat.config.js` — Hardhat 2 compilation of `src/` only, same compiler settings as `foundry.toml` (keep them in sync), imports via the Foundry remappings (`@nomicfoundation/hardhat-foundry`); output in `artifacts/` and `cache_hardhat/` (git-ignored).
 - `remappings.txt` — `CMTAT/` → `lib/CMTAT/contracts/`, `OZ/` → `lib/openzeppelin-contracts/contracts/`, `@openzeppelin/contracts-upgradeable/`.
 - `doc/coverage/` — lcov + HTML coverage report.
 - `doc/technical/guides/` — deployment guides (`DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`); each step is run by a test, keep the two in sync.
@@ -93,7 +94,7 @@ script/
 - OpenZeppelin Contracts Upgradeable — submodule v5.5.0 (tests, via CMTAT)
 - CMTAT — submodule `lib/CMTAT` at tag `v3.0.0` (provides `IDebtEngine`, `ICMTATDebt`, and `CMTATStandaloneDebt` for tests)
 - forge-std v1.13.0
-- npm dev deps: `surya`, `prettier-plugin-solidity`
+- npm dev deps: `hardhat` 2.29, `@nomicfoundation/hardhat-foundry` 1.2, `surya`, `prettier-plugin-solidity`
 
 ## Common commands
 
@@ -103,6 +104,7 @@ forge test
 forge fmt                      # formatter (forge fmt --check in CI-style checks)
 forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
 forge test --gas-report
+npm run compile:hardhat                  # Hardhat compilation of src/ (needs forge for the remappings)
 forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast   # omit --broadcast to simulate
 forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
 slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/v0.3.0/slither-report.md
