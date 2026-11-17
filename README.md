@@ -2,9 +2,21 @@
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
-This repository includes the DebtEngine contract for the [CMTAT](https://github.com/CMTA/CMTAT) token.
+DebtEngine is an external engine for [CMTAT](https://github.com/CMTA/CMTAT) debt tokens. It stores, for each token, the **debt information** of the instrument (issuer, guarantor, interest rate, par value, maturity, coupon frequency, day-count convention, currency, …) and its **credit events** (default, redemption, rating), and serves them to the token.
 
-The DebtEngine allows defining `debt` and `credit events` for several different contracts.
+- **One engine, many tokens.** A single deployment holds a record per token address, so an issuer or a servicing agent maintains the data of every bond in one place.
+- **Plugged into CMTAT.** A CMTAT debt token (`CMTATStandaloneDebt` or `CMTATUpgradeableDebt`) is connected with `setDebtEngine(engine)`; from then on its `debt()` and `creditEvents()` return the engine's record for that token. Holders and integrators keep calling the token.
+- **Data, not compliance.** The engine never touches transfers, balances or funds; it only stores and returns information.
+- **Two access-control versions, chosen at deployment.** `DebtEngineAccessControl` separates duties with a debt-manager and a credit-events-manager role (OpenZeppelin `AccessControlEnumerable`); `DebtEngineOwnable` gives one owner, typically a multisig, control of everything (`Ownable2Step`). Both support gasless transactions through an optional ERC-2771 forwarder.
+
+Version **0.3.0** is built and tested for CMTAT **v3.0.0** (see [Compatibility](#compatibility)).
+
+Start here:
+
+- [Deployment guide](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md): deploy the engine, connect a token and operate it, every step backed by a test.
+- [Deployment scripts](#deployment): Foundry scripts for the engine and for connecting a token.
+- [Audit and analysis overview](./doc/tools/AUDIT_OVERVIEW.md): static analysis, AI-assisted reviews and coverage.
+- [CHANGELOG](./CHANGELOG.md): what changed in each release.
 
 ## Data Structures
 
@@ -136,16 +148,16 @@ Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g
 
 | DebtEngine | On-chain version (getter) | CMTAT | Tested against (submodules) | OpenZeppelin |
 | --- | --- | --- | --- | --- |
-| **v0.3.0** (current, unaudited) | `"0.3.0"` (`version()`) | ≥ v3.0.0 | CMTAT v3.0.0 (audited) | v5.5.0 |
+| **v0.3.0** (current, unaudited) | `"0.3.0"` (`version()`) | v3.0.0 | CMTAT v3.0.0 (audited) | v5.5.0 |
 | **v0.2.0** (unaudited) | `"0.2.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
 | **v0.1.0** (unaudited) | `"0.1.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
 
-- **Use DebtEngine v0.3.0 for a CMTAT v3 token.** v0.1.0 and v0.2.0 are only for CMTAT v2.5.
+- **Use DebtEngine v0.3.0 for a CMTAT v3.0.0 token.** v0.1.0 and v0.2.0 are only for CMTAT v2.5.
 - **v0.3.0 and CMTAT v2.x are not compatible**, in either direction. CMTAT v3 rewrote the engine interface: v2.5's `IDebtEngine` returns `IDebtGlobal.DebtBase`, while v3's extends `ICMTATDebt` / `ICMTATCreditEvents` and returns `DebtInformation`, which has different structs and fields.
 - **Which CMTAT tokens can use it:** only deployments that include CMTAT's `DebtEngineModule` (e.g. `CMTATStandaloneDebt` / `CMTATUpgradeableDebt`) can be pointed at a DebtEngine.
 - **One engine serves many tokens.** The token calls `debt()` / `creditEvents()` on the engine, and the engine answers with the record stored under the calling token's address.
 - **The v0.3.0 test suite deploys a real `CMTATStandaloneDebt` from the pinned CMTAT v3.0.0 submodule** and checks that the token returns the debt and credit events stored in the engine.
-- **Newer CMTAT v3 releases:** they are expected to work as long as `IDebtEngine` is unchanged, but they have not been tested. Re-run the test suite against the target CMTAT version before deploying.
+- **Other CMTAT v3 releases are not supported by v0.3.0:** only CMTAT v3.0.0 is tested. Before using a later CMTAT release, pin the `lib/CMTAT` submodule to it and run the full test suite (including `test/DeployGuideCMTATv3.0.0.t.sol`, which deploys real CMTAT debt tokens).
 
 Step-by-step deployment with a CMTAT v3.0.0 debt token (standalone or upgradeable), validated by `test/DeployGuideCMTATv3.0.0.t.sol`: [doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md).
 
