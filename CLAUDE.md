@@ -81,7 +81,8 @@ script/
 - `remappings.txt` — `CMTAT/` → `lib/CMTAT/contracts/`, `OZ/` → `lib/openzeppelin-contracts/contracts/`, `@openzeppelin/contracts-upgradeable/`.
 - `doc/coverage/` — lcov + HTML coverage report.
 - `doc/technical/guides/` — deployment guides (`DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md`); each step is run by a test, keep the two in sync.
-- `doc/tools/<version>/` — tool reports per release: `slither-report.md`, `aderyn-report.md`, the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` and the published security audit `CLAUDE_AUDIT.md` (currently `doc/tools/v0.3.0/`).
+- `doc/tools/AUDIT_OVERVIEW.md` — index of every analysis (static analysis, AI reviews, coverage) with their results.
+- `doc/tools/<version>/` — tool reports per release: `slither-report.md` / `aderyn-report.md` with their `*-feedback.md` triage, the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` and the published security audit `CLAUDE_AUDIT.md` (currently `doc/tools/v0.3.0/`).
 - `doc/script/` — Surya scripts; output in `doc/surya/` (graph, inheritance, report).
 - `AUDIT/` — working deliverables of the v0.3.0 security analysis (published version: `doc/tools/v0.3.0/CLAUDE_AUDIT.md`): `THREAT_MODEL.md` (actors, threat IDs, invariants), `TEST_IMPROVEMENT.md`, `RESULT.md` (findings with PoCs and fix code).
 - `lib/` — git submodules (do not edit).
@@ -102,13 +103,13 @@ script/
 forge build
 forge test
 forge fmt                      # formatter (forge fmt --check in CI-style checks)
-forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+forge coverage --report lcov --report-file doc/coverage/lcov.info --no-match-coverage "test/|script/" && genhtml doc/coverage/lcov.info --branch-coverage --output-dir doc/coverage/coverage
 forge test --gas-report
 npm run compile:hardhat                  # Hardhat compilation of src/ (needs forge for the remappings)
 forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast   # omit --broadcast to simulate
 forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
-slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/v0.3.0/slither-report.md
-aderyn . -o doc/tools/v0.3.0/aderyn-report.md
+slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std|script" > doc/tools/v0.3.0/slither-report.md   # runs forge clean
+aderyn -x mocks --output doc/tools/v0.3.0/aderyn-report.md
 bash doc/script/script_surya_graph.sh && bash doc/script/script_surya_inheritance.sh && bash doc/script/script_surya_report.sh
 ```
 

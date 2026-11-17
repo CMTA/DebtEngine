@@ -1,100 +1,39 @@
+# Slither report — DebtEngine v0.3.0
+
+| | |
+|---|---|
+| Tool | Slither 0.11.6 (run with `uvx --from slither-analyzer`) |
+| Command | `slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts\|test\|CMTAT\|forge-std\|script" > doc/tools/v0.3.0/slither-report.md` |
+| Scope | `src/` only (5 files); dependencies, tests and deployment scripts filtered out; the project has no mocks. Scope check: 0 `lib/` paths in the output |
+| Date / commit | 2026-11-17, `3b86328` |
+| Result | **0 High · 0 Medium · 0 Low · 2 Informational** |
+
+| Detector | Severity | Instances | Assessment |
+|---|---|---|---|
+| `dead-code` | Informational | 2 | By design: `_msgData()` overrides in `DebtEngineAccessControl` / `DebtEngineOwnable` are required by the compiler (`Context` is inherited twice) and cannot be removed |
+
+**Nothing to fix.** Triage: [slither-report-feedback.md](./slither-report-feedback.md) · Overview: [../AUDIT_OVERVIEW.md](../AUDIT_OVERVIEW.md)
+
+---
+
+'forge clean' running (wd: /home/ryan/Pictures/dev/DebtEngine)
+'forge config --json' running
+'forge build --build-info --deny never --skip ./test/** ./script/** --force' running (wd: /home/ryan/Pictures/dev/DebtEngine)
 **THIS CHECKLIST IS NOT COMPLETE**. Use `--show-ignored-findings` to show all the results.
 Summary
- - [dead-code](#dead-code) (1 results) (Informational)
- - [solc-version](#solc-version) (1 results) (Informational)
- - [similar-names](#similar-names) (9 results) (Informational)
+ - [dead-code](#dead-code) (2 results) (Informational)
 ## dead-code
-
-> Acknowledge
-
 Impact: Informational
 Confidence: Medium
-
  - [ ] ID-0
-[DebtEngine._msgData()](src/DebtEngine.sol#L160-L167) is never used and should be removed
+[DebtEngineAccessControl._msgData()](src/deployment/DebtEngineAccessControl.sol#L65-L67) is never used and should be removed
 
-src/DebtEngine.sol#L160-L167
+src/deployment/DebtEngineAccessControl.sol#L65-L67
 
-## solc-version
 
-> The version in the config file is 0.8.26
-
-Impact: Informational
-Confidence: High
  - [ ] ID-1
-	Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
-	- VerbatimInvalidDeduplication
-	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
-	- MissingSideEffectsOnSelectorAccess.
-	 It is used by:
-	- lib/CMTAT/contracts/interfaces/IDebtGlobal.sol#3
-	- lib/CMTAT/contracts/interfaces/engine/IDebtEngine.sol#3
-	- lib/openzeppelin-contracts/contracts/access/AccessControl.sol#4
-	- lib/openzeppelin-contracts/contracts/access/IAccessControl.sol#4
-	- lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol#4
-	- lib/openzeppelin-contracts/contracts/utils/Context.sol#4
-	- lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol#4
-	- lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol#4
-	- src/DebtEngine.sol#2
-	- src/DebtEngineInvariantStorage.sol#2
+[DebtEngineOwnable._msgData()](src/deployment/DebtEngineOwnable.sol#L46-L48) is never used and should be removed
 
-## similar-names
+src/deployment/DebtEngineOwnable.sol#L46-L48
 
-> Acknowledge
-
-Impact: Informational
-Confidence: Medium
-
- - [ ] ID-2
-Variable [DebtEngine.debt(address).smartContract_](src/DebtEngine.sol#L48) is too similar to [DebtEngine.setDebtBatch(address[],IDebtGlobal.DebtBase[]).smartContracts](src/DebtEngine.sol#L112)
-
-src/DebtEngine.sol#L48
-
-
- - [ ] ID-3
-Variable [DebtEngine.setCreditEvents(address,IDebtGlobal.CreditEvents).smartContract_](src/DebtEngine.sol#L86) is too similar to [DebtEngine.setDebtBatch(address[],IDebtGlobal.DebtBase[]).smartContracts](src/DebtEngine.sol#L112)
-
-src/DebtEngine.sol#L86
-
-
- - [ ] ID-4
-Variable [DebtEngine.creditEvents(address).smartContract_](src/DebtEngine.sol#L65) is too similar to [DebtEngine.setDebtBatch(address[],IDebtGlobal.DebtBase[]).smartContracts](src/DebtEngine.sol#L112)
-
-src/DebtEngine.sol#L65
-
-
- - [ ] ID-5
-Variable [DebtEngine.debt(address).smartContract_](src/DebtEngine.sol#L48) is too similar to [DebtEngine.setCreditEventsBatch(address[],IDebtGlobal.CreditEvents[]).smartContracts](src/DebtEngine.sol#L96)
-
-src/DebtEngine.sol#L48
-
-
- - [ ] ID-6
-Variable [DebtEngine.setDebt(address,IDebtGlobal.DebtBase).smartContract_](src/DebtEngine.sol#L76) is too similar to [DebtEngine.setCreditEventsBatch(address[],IDebtGlobal.CreditEvents[]).smartContracts](src/DebtEngine.sol#L96)
-
-src/DebtEngine.sol#L76
-
-
- - [ ] ID-7
-Variable [DebtEngine.setDebt(address,IDebtGlobal.DebtBase).smartContract_](src/DebtEngine.sol#L76) is too similar to [DebtEngine.setDebtBatch(address[],IDebtGlobal.DebtBase[]).smartContracts](src/DebtEngine.sol#L112)
-
-src/DebtEngine.sol#L76
-
-
- - [ ] ID-8
-Variable [DebtEngine.creditEvents(address).smartContract_](src/DebtEngine.sol#L65) is too similar to [DebtEngine.setCreditEventsBatch(address[],IDebtGlobal.CreditEvents[]).smartContracts](src/DebtEngine.sol#L96)
-
-src/DebtEngine.sol#L65
-
-
- - [ ] ID-9
-Variable [DebtEngine.setCreditEvents(address,IDebtGlobal.CreditEvents).smartContract_](src/DebtEngine.sol#L86) is too similar to [DebtEngine.setCreditEventsBatch(address[],IDebtGlobal.CreditEvents[]).smartContracts](src/DebtEngine.sol#L96)
-
-src/DebtEngine.sol#L86
-
-
- - [ ] ID-10
-Variable [DebtEngine._creditEvents](src/DebtEngine.sol#L19) is too similar to [DebtEngine.setCreditEvents(address,IDebtGlobal.CreditEvents).creditEvents_](src/DebtEngine.sol#L87)
-
-src/DebtEngine.sol#L19
 

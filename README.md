@@ -295,16 +295,26 @@ The CMTAT contracts and the OpenZeppelin library are included as submodules of t
 forge fmt
 ```
 
-### Slither
+### Static analysis
+
+Reports and their triage are listed in [doc/tools/AUDIT_OVERVIEW.md](./doc/tools/AUDIT_OVERVIEW.md).
+
+| Version | Slither | Aderyn |
+|---|---|---|
+| v0.3.0 | [report](./doc/tools/v0.3.0/slither-report.md) · [feedback](./doc/tools/v0.3.0/slither-report-feedback.md) — 0 High / 0 Medium / 0 Low / 2 Info, nothing to fix | [report](./doc/tools/v0.3.0/aderyn-report.md) · [feedback](./doc/tools/v0.3.0/aderyn-report-feedback.md) — 0 High / 7 Low, nothing to fix |
+
+#### Slither
 
 ```bash
-slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/v0.3.0/slither-report.md
+slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std|script" > doc/tools/v0.3.0/slither-report.md
 ```
 
-### Aderyn
+`--compile-force-framework foundry` is needed because the repository also has a `hardhat.config.js`. Slither runs `forge clean` before compiling. If the local `slither` cannot start (e.g. a user install for an older Python), `uvx --from slither-analyzer slither ...` runs it in an isolated environment.
+
+#### Aderyn
 
 ```bash
-aderyn . -o doc/tools/v0.3.0/aderyn-report.md
+aderyn -x mocks --output doc/tools/v0.3.0/aderyn-report.md
 ```
 
 ### Surya
@@ -350,7 +360,7 @@ forge test
 #### Coverage
 
 ```bash
-forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+forge coverage --report lcov --report-file doc/coverage/lcov.info --no-match-coverage "test/|script/" && genhtml doc/coverage/lcov.info --branch-coverage --output-dir doc/coverage/coverage
 ```
 
 #### Gas report

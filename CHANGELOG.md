@@ -36,13 +36,13 @@ Custom changelog tag
 - Documentation
   - Perform a code coverage and update the files in the corresponding directory [./doc/coverage](./doc/coverage)
 
-  > forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+  > forge coverage --report lcov --report-file doc/coverage/lcov.info --no-match-coverage "test/|script/" && genhtml doc/coverage/lcov.info --branch-coverage --output-dir doc/coverage/coverage
 
   - Perform an audit with several audit tools (Aderyn and Slither), update the report in the release directory `./doc/tools/<version>/` (e.g. [./doc/tools/v0.3.0](./doc/tools/v0.3.0))
 
   ```bash
-  slither . --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > doc/tools/<version>/slither-report.md
-  aderyn . -o doc/tools/<version>/aderyn-report.md
+  slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std|script" > doc/tools/<version>/slither-report.md
+  aderyn -x mocks --output doc/tools/<version>/aderyn-report.md
   ```
 
   - Update surya doc by running the 3 scripts in [./doc/script](./doc/script) (output in [./doc/surya](./doc/surya))
@@ -120,6 +120,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Document that `MAX_BATCH_SIZE` is a ceiling and that the mainnet per-transaction gas cap (EIP-7825) limits batches first (NatSpec and README)
 - Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
 - Move the tool reports to a per-release directory, `doc/tools/v0.3.0/` (Slither, new Aderyn report, code-quality review `CLAUDE_ANALYSIS.md`); remove the earlier draft AI reviews
+- Refresh the static analysis and coverage for v0.3.0: Slither 0.11.6 (0 High / 0 Medium / 0 Low / 2 Info) and Aderyn 0.6.5 (0 High / 7 Low), each with a feedback file triaging every finding (nothing to fix), a new audit overview (`doc/tools/AUDIT_OVERVIEW.md`), and coverage regenerated for the production sources (94.81% lines, 100% branches)
 - Add agent guide (`CLAUDE.md` / `AGENTS.md`)
 - Adapt the release checklist to this project's commands and directories
 
