@@ -57,7 +57,7 @@ Custom changelog tag
 
 ## v0.3.0
 
-Branch: `dev` (not yet released, commit hash to be added on release)
+Commit: to be added on release
 
 ### Breaking change
 
