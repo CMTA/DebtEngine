@@ -2,214 +2,387 @@
 
 > This project has not been audited yet, please use at your own risk. For any questions, please contact [admin@cmta.ch](mailto:admin@cmta.ch).
 
-This repository includes the DebtEngine contract for the [CMTAT](https://github.com/CMTA/CMTAT) token.
+DebtEngine is an external engine for [CMTAT](https://github.com/CMTA/CMTAT) debt tokens. It stores, for each token, the **debt information** of the instrument (issuer, guarantor, interest rate, par value, maturity, coupon frequency, day-count convention, currency, …) and its **credit events** (default, redemption, rating), and serves them to the token.
 
-The *debtEngine* allows to define `debt` and `credit events` for several different contracts.
+- **One engine, many tokens.** A single deployment holds a record per token address, so an issuer or a servicing agent maintains the data of every bond in one place.
+- **Plugged into CMTAT.** A CMTAT debt token (`CMTATStandaloneDebt` or `CMTATUpgradeableDebt`) is connected with `setDebtEngine(engine)`; from then on its `debt()` and `creditEvents()` return the engine's record for that token. Holders and integrators keep calling the token.
+- **Data, not compliance.** The engine never touches transfers, balances or funds; it only stores and returns information.
+- **Two access-control versions, chosen at deployment.** `DebtEngineAccessControl` separates duties with a debt-manager and a credit-events-manager role (OpenZeppelin `AccessControlEnumerable`); `DebtEngineOwnable` gives one owner, typically a multisig, control of everything (`Ownable2Step`). Both support gasless transactions through an optional ERC-2771 forwarder.
 
-A `debt` is defined with the following attributes
+Version **0.3.0** is built and tested for CMTAT **v3.0.0** (see [Compatibility](#compatibility)).
+
+Start here:
+
+- [Deployment guide](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md): deploy the engine, connect a token and operate it, every step backed by a test.
+- [Deployment scripts](#deployment): Foundry scripts for the engine and for connecting a token.
+- [Audit and analysis overview](./doc/tools/AUDIT_OVERVIEW.md): static analysis, AI-assisted reviews and coverage.
+- [CHANGELOG](./CHANGELOG.md): what changed in each release.
+
+## Data Structures
+
+A `debt` is represented as a `DebtInformation` struct composed of two parts:
 
 ```solidity
-struct DebtBase {
-        uint256 interestRate;
-        uint256 parValue;
-        string guarantor;
-        string bondHolder;
-        string maturityDate;
-        string interestScheduleFormat;
-        string interestPaymentDate;
-        string dayCountConvention;
-        string businessDayConvention;
-        string publicHolidaysCalendar;
-        string issuanceDate;
-        string couponFrequency;
+struct DebtInformation {
+    DebtIdentifier debtIdentifier;
+    DebtInstrument debtInstrument;
 }
 ```
 
-A `creditEvents`is defined with the following attributes
+**DebtIdentifier** — information on the issuer and other persons involved:
+
+```solidity
+struct DebtIdentifier {
+    string issuerName;
+    string issuerDescription;
+    string guarantor;
+    string debtHolder;
+}
+```
+
+**DebtInstrument** — information on the instrument:
+
+```solidity
+struct DebtInstrument {
+    uint256 interestRate;
+    uint256 parValue;
+    uint256 minimumDenomination;
+    string issuanceDate;
+    string maturityDate;
+    string couponPaymentFrequency;
+    string interestScheduleFormat;
+    string interestPaymentDate;
+    string dayCountConvention;
+    string businessDayConvention;
+    string currency;
+    address currencyContract;
+}
+```
+
+A `creditEvents` is defined with the following attributes:
 
 ```solidity
 struct CreditEvents {
-      bool flagDefault;
-      bool flagRedeemed;
-      string rating;
+    bool flagDefault;
+    bool flagRedeemed;
+    string rating;
 }
 ```
+
+## Architecture
+
+The DebtEngine uses a layered architecture:
+
+- **`DebtEngineBase`** (abstract) — contains all business logic, mappings, events, and authorization hooks. Does not depend on any specific access control mechanism or meta-transaction standard.
+- **Deployment contracts** — concrete contracts that wire in access control and ERC-2771 support:
+  - **`DebtEngineAccessControl`** — uses OpenZeppelin `AccessControlEnumerable` (RBAC, role holders listable on-chain) with granular `DEBT_MANAGER_ROLE` and `CREDIT_EVENTS_MANAGER_ROLE`.
+  - **`DebtEngineOwnable`** — uses OpenZeppelin `Ownable2Step` (single owner controls everything; two-step ownership transfer).
+
+## Functions
+
+| Function | Visibility | Access | Description |
+| --- | --- | --- | --- |
+| `debt()` | External | Public | Returns debt for the caller's contract |
+| `debt(address)` | Public | Public | Returns debt for a specific contract |
+| `creditEvents()` | External | Public | Returns credit events for the caller's contract |
+| `creditEvents(address)` | Public | Public | Returns credit events for a specific contract |
+| `hasDebt(address)` | External | Public | Returns true if a debt record is currently set (false again after `clearDebt`) |
+| `hasCreditEvents(address)` | External | Public | Returns true if credit events are currently set (false again after `clearCreditEvents`) |
+| `setDebt(address, DebtInformation)` | External | Authorized | Set debt for a contract |
+| `setCreditEvents(address, CreditEvents)` | External | Authorized | Set credit events for a contract |
+| `setDebtBatch(address[], DebtInformation[])` | External | Authorized | Set debt for multiple contracts (at most `MAX_BATCH_SIZE`) |
+| `setCreditEventsBatch(address[], CreditEvents[])` | External | Authorized | Set credit events for multiple contracts (at most `MAX_BATCH_SIZE`) |
+| `clearDebt(address)` | External | Authorized | Delete the debt record of a contract; `hasDebt` returns false and `debt` returns the zero struct |
+| `clearCreditEvents(address)` | External | Authorized | Delete the credit events of a contract; `hasCreditEvents` returns false and `creditEvents` returns the zero struct |
+| `MAX_BATCH_SIZE()` | Public | Public | Hard ceiling on batch entries (500) |
+| `version()` | Public | Public | Contract version (`"0.3.0"`) |
+| `supportsInterface(bytes4)` | Public | Public | ERC-165: `IAccessControlEnumerable` / `IAccessControl` (RBAC variant), ERC-173 (Ownable variant), ERC-165 |
+
+All public and external functions are `virtual`. Every write goes through one internal function per record type (`_setDebt`, `_setCreditEvents`), which rejects `address(0)`, stores the record, sets the `has*` flag and emits the event. Every delete goes through `_clearDebt` / `_clearCreditEvents`, which rejects `address(0)`, removes the record and its `has*` flag and emits the `*Cleared` event; clearing a contract that has no record succeeds and still emits the event. A CMTAT token pointing at the engine reads an empty record after a clear, the same as before its record was set.
+
+> **Batch size in practice:** `MAX_BATCH_SIZE` is a ceiling, not a target. Each entry writes its whole struct to storage. In the test suite a debt record with typical strings costs about 400k gas and a short credit-events record about 71k, so under the Ethereum mainnet per-transaction cap of 16,777,216 gas (EIP-7825) a batch holds roughly 40 debt records or 230 credit-events records. Estimate gas for your actual data before sending a batch.
+
+## Events
+
+| Event | Emitted when |
+| --- | --- |
+| `DebtSet(address indexed smartContract)` | Debt is set or updated for a contract |
+| `CreditEventsSet(address indexed smartContract)` | Credit events are set or updated for a contract |
+| `DebtCleared(address indexed smartContract)` | The debt record of a contract is deleted |
+| `CreditEventsCleared(address indexed smartContract)` | The credit events of a contract are deleted |
+
+## Access Control
+
+Authorization is pluggable via two `internal view virtual` hooks (`_authorizeSetDebt` and `_authorizeSetCreditEvents`) declared without a body in `DebtEngineBase`: the base decides **what** is protected, each deployment contract decides **who** may do it. Each override has an empty body and carries the check in its modifier (`onlyRole(...)` or `onlyOwner`), which resolves the caller through `_msgSender()` (ERC-2771 aware).
+
+| Capability | Functions | Hook | `DebtEngineAccessControl` | `DebtEngineOwnable` |
+| --- | --- | --- | --- | --- |
+| Debt management | `setDebt`, `setDebtBatch`, `clearDebt` | `_authorizeSetDebt` | `DEBT_MANAGER_ROLE` (or `DEFAULT_ADMIN_ROLE`) | owner |
+| Credit-events management | `setCreditEvents`, `setCreditEventsBatch`, `clearCreditEvents` | `_authorizeSetCreditEvents` | `CREDIT_EVENTS_MANAGER_ROLE` (or `DEFAULT_ADMIN_ROLE`) | owner |
+
+The variant is chosen at deployment: the two contracts are not interchangeable at a deployed address, and the policy cannot be swapped afterwards. The pattern makes access control pluggable, not more decentralised: a single admin or owner key can still rewrite every debt and credit-event record.
+
+### DebtEngineAccessControl (RBAC)
+
+| Role | Permissions |
+| --- | --- |
+| `DEFAULT_ADMIN_ROLE` | Implicitly holds all roles. Can grant/revoke roles. |
+| `DEBT_MANAGER_ROLE` | Can call `setDebt`, `setDebtBatch` and `clearDebt` |
+| `CREDIT_EVENTS_MANAGER_ROLE` | Can call `setCreditEvents`, `setCreditEventsBatch` and `clearCreditEvents` |
+
+> **Note:** The `DEFAULT_ADMIN_ROLE` is a super-admin. Any account holding this role is treated as holding every role implicitly. This implicit membership is not recorded: `getRoleMember`, `getRoleMemberCount` and `getRoleMembers` (from `AccessControlEnumerable`) do not list the admin under `DEBT_MANAGER_ROLE` or `CREDIT_EVENTS_MANAGER_ROLE`, and no `RoleGranted` event is emitted for it, so tools listing role holders will not show the admin. Role separation therefore constrains operators, never the admin.
+>
+> Granting or revoking a manager role on an account that holds `DEFAULT_ADMIN_ROLE` has no effect: the grant is not recorded, and a revocation (or `renounceRole`) emits `RoleRevoked` while the account keeps the power. When handing admin over, renounce `DEFAULT_ADMIN_ROLE` first and have the new admin grant the manager role afterwards.
+>
+> If the last `DEFAULT_ADMIN_ROLE` holder renounces, roles can no longer be granted or revoked, and only existing managers can still write records.
+>
+> **Admin handover** is a plain role change, with no delay and no acceptance step: (1) the current admin calls `grantRole(DEFAULT_ADMIN_ROLE, newAdmin)`; (2) check that `newAdmin` is correct and controlled, e.g. by having it perform an admin action; (3) only then does the old admin call `renounceRole(DEFAULT_ADMIN_ROLE, oldAdmin)`. Doing step 3 before step 1, or granting to a mistyped address and then renouncing, leaves the contract without an admin. If the old admin should stay a manager, the new admin grants it the manager role after step 3 (a grant made before would be lost). Full runbook: [deployment guide, section 8](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md).
+
+### DebtEngineOwnable (Single Owner)
+
+The owner can call all restricted functions. Ownership transfer is two-step (`Ownable2Step`): `transferOwnership` only records a `pendingOwner`, and control moves when that address calls `acceptOwnership`, so a mistyped address cannot take over the contract. Ownership can also be permanently renounced via `renounceOwnership`. Deviation from ERC-173 (inherited from OpenZeppelin): `transferOwnership(address(0))` does not renounce ownership, it only cancels a pending transfer; use `renounceOwnership` to renounce. Renouncing freezes every debt and credit-events record permanently.
+
+Every hook collapses to `onlyOwner`, so this variant cannot separate duties (e.g. let one operator manage debt but not credit events); use `DebtEngineAccessControl` when that is required.
+
+## Compatibility
+
+| DebtEngine | On-chain version (getter) | CMTAT | Tested against (submodules) | OpenZeppelin |
+| --- | --- | --- | --- | --- |
+| **v0.3.0** (current, unaudited) | `"0.3.0"` (`version()`) | v3.0.0 | CMTAT v3.0.0 (audited) | v5.5.0 |
+| **v0.2.0** (unaudited) | `"0.2.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
+| **v0.1.0** (unaudited) | `"0.1.0"` (`VERSION()`) | v2.5 | CMTAT v2.5.0-rc0 | v5.0.2 |
+
+- **Use DebtEngine v0.3.0 for a CMTAT v3.0.0 token.** v0.1.0 and v0.2.0 are only for CMTAT v2.5.
+- **v0.3.0 and CMTAT v2.x are not compatible**, in either direction. CMTAT v3 rewrote the engine interface: v2.5's `IDebtEngine` returns `IDebtGlobal.DebtBase`, while v3's extends `ICMTATDebt` / `ICMTATCreditEvents` and returns `DebtInformation`, which has different structs and fields.
+- **Which CMTAT tokens can use it:** only deployments that include CMTAT's `DebtEngineModule` (e.g. `CMTATStandaloneDebt` / `CMTATUpgradeableDebt`) can be pointed at a DebtEngine.
+- **One engine serves many tokens.** The token calls `debt()` / `creditEvents()` on the engine, and the engine answers with the record stored under the calling token's address.
+- **The v0.3.0 test suite deploys a real `CMTATStandaloneDebt` from the pinned CMTAT v3.0.0 submodule** and checks that the token returns the debt and credit events stored in the engine.
+- **Other CMTAT v3 releases are not supported by v0.3.0:** only CMTAT v3.0.0 is tested. Before using a later CMTAT release, pin the `lib/CMTAT` submodule to it and run the full test suite (including `test/DeployGuideCMTATv3.0.0.t.sol`, which deploys real CMTAT debt tokens).
+
+Step-by-step deployment with a CMTAT v3.0.0 debt token (standalone or upgradeable), validated by `test/DeployGuideCMTATv3.0.0.t.sol`: [doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md).
 
 ## How to include it
 
-While it has been designed for the CMTAT, the debtEngine can be used with others contracts to define debt and credit events.
+While it has been designed for the CMTAT, the DebtEngine can be used with other contracts to define debt and credit events.
 
-For that, the only thing to do is to import in your contract the interface `IDebtEngine` which declares the two functions `debt` and `creditEvents`.
-
-This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.sol](https://github.com/CMTA/CMTAT/blob/master/contracts/interfaces/engine/IDebtEngine.sol)
+Import the `IDebtEngine` interface which declares the `debt` and `creditEvents` functions:
 
 ```solidity
-interface IDebtEngine is IDebtGlobal {
-    function debt() external view returns(IDebtGlobal.DebtBase memory);
-    function creditEvents() external view returns(IDebtGlobal.CreditEvents memory);
+interface IDebtEngine is ICMTATDebt, ICMTATCreditEvents {
+    // Inherits debt() and creditEvents() from parent interfaces
 }
 ```
+
+This interface can be found in [CMTAT/contracts/interfaces/engine/IDebtEngine.sol](https://github.com/CMTA/CMTAT/blob/master/contracts/interfaces/engine/IDebtEngine.sol)
 
 ## Schema
 
 ### Inheritance
 
-![surya_inheritance_DebtEngine.sol](./doc/surya/surya_inheritance/surya_inheritance_DebtEngine.sol.png)
+#### DebtEngineAccessControl
+
+![surya_inheritance_DebtEngineAccessControl.sol](./doc/surya/surya_inheritance/surya_inheritance_DebtEngineAccessControl.sol.png)
+
+#### DebtEngineOwnable
+
+![surya_inheritance_DebtEngineOwnable.sol](./doc/surya/surya_inheritance/surya_inheritance_DebtEngineOwnable.sol.png)
 
 ### Graph
 
-![surya_graph_DebtEngine.sol](./doc/surya/surya_graph/surya_graph_DebtEngine.sol.png)
+#### DebtEngineAccessControl
+
+![surya_graph_DebtEngineAccessControl.sol](./doc/surya/surya_graph/surya_graph_DebtEngineAccessControl.sol.png)
+
+#### DebtEngineOwnable
+
+![surya_graph_DebtEngineOwnable.sol](./doc/surya/surya_graph/surya_graph_DebtEngineOwnable.sol.png)
 
 ## Surya Description Report
 
 ### Contracts Description Table
 
-|    Contract    |         Type         |                         Bases                          |                |               |
-| :------------: | :------------------: | :----------------------------------------------------: | :------------: | :-----------: |
-|       └        |  **Function Name**   |                     **Visibility**                     | **Mutability** | **Modifiers** |
-|                |                      |                                                        |                |               |
-| **DebtEngine** |    Implementation    | IDebtEngine, AccessControl, DebtEngineInvariantStorage |                |               |
-|       └        |    <Constructor>     |                        Public ❗️                        |       🛑        |      NO❗️      |
-|       └        |         debt         |                       External ❗️                       |                |      NO❗️      |
-|       └        |         debt         |                        Public ❗️                        |                |      NO❗️      |
-|       └        |     creditEvents     |                       External ❗️                       |                |      NO❗️      |
-|       └        |     creditEvents     |                        Public ❗️                        |                |      NO❗️      |
-|       └        |       setDebt        |                       External ❗️                       |       🛑        |   onlyRole    |
-|       └        |   setCreditEvents    |                       External ❗️                       |       🛑        |   onlyRole    |
-|       └        | setCreditEventsBatch |                       External ❗️                       |       🛑        |   onlyRole    |
-|       └        |    setDebtsBatch     |                       External ❗️                       |       🛑        |   onlyRole    |
-|       └        |       hasRole        |                        Public ❗️                        |                |      NO❗️      |
+#### DebtEngineBase
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **DebtEngineBase** | Implementation | IDebtEngine, DebtEngineInvariantStorage, VersionModule |||
+| └ | debt | External ❗️ |   |NO❗️ |
+| └ | debt | Public ❗️ |   |NO❗️ |
+| └ | creditEvents | External ❗️ |   |NO❗️ |
+| └ | creditEvents | Public ❗️ |   |NO❗️ |
+| └ | hasDebt | External ❗️ |   |NO❗️ |
+| └ | hasCreditEvents | External ❗️ |   |NO❗️ |
+| └ | setDebt | External ❗️ | 🛑  | onlyDebtManager |
+| └ | setCreditEvents | External ❗️ | 🛑  | onlyCreditEventsManager |
+| └ | setCreditEventsBatch | External ❗️ | 🛑  | onlyCreditEventsManager |
+| └ | setDebtBatch | External ❗️ | 🛑  | onlyDebtManager |
+| └ | clearDebt | External ❗️ | 🛑  | onlyDebtManager |
+| └ | clearCreditEvents | External ❗️ | 🛑  | onlyCreditEventsManager |
+| └ | _setDebt | Internal 🔒 | 🛑  | |
+| └ | _setCreditEvents | Internal 🔒 | 🛑  | |
+| └ | _clearDebt | Internal 🔒 | 🛑  | |
+| └ | _clearCreditEvents | Internal 🔒 | 🛑  | |
+| └ | _authorizeSetDebt | Internal 🔒 |   | |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | |
+| └ | _msgSender | Internal 🔒 |   | |
+
+#### VersionModule
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **VersionModule** | Implementation |  |||
+| └ | version | Public ❗️ |   |NO❗️ |
+
+#### DebtEngineAccessControl
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **DebtEngineAccessControl** | Implementation | DebtEngineBase, AccessControlEnumerable, ERC2771Context |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyRole |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyRole |
+| └ | hasRole | Public ❗️ |   |NO❗️ |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
+
+#### DebtEngineOwnable
+
+|  Contract  |         Type        |       Bases      |                  |                 |
+|:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
+|     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
+||||||
+| **DebtEngineOwnable** | Implementation | DebtEngineBase, Ownable2Step, ERC2771Context, ERC165 |||
+| └ | <Constructor> | Public ❗️ | 🛑  | ERC2771Context Ownable |
+| └ | supportsInterface | Public ❗️ |   |NO❗️ |
+| └ | _authorizeSetDebt | Internal 🔒 |   | onlyOwner |
+| └ | _authorizeSetCreditEvents | Internal 🔒 |   | onlyOwner |
+| └ | _msgSender | Internal 🔒 |   | |
+| └ | _msgData | Internal 🔒 |   | |
+| └ | _contextSuffixLength | Internal 🔒 |   | |
 
 ### Legend
 
-| Symbol | Meaning                   |
-| :----: | ------------------------- |
-|   🛑    | Function can modify state |
-|   💵    | Function is payable       |
+|  Symbol  |  Meaning  |
+|:--------:|-----------|
+|    🛑    | Function can modify state |
+|    💵    | Function is payable |
 
-
+Full reports: [./doc/surya/surya_report](./doc/surya/surya_report)
 
 ## Gasless support (ERC-2771)
 
-The DebtEngine supports client-side gasless transactions using the [Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard for transfering fee payment to another account than that of the transaction issuer. The contract uses the OpenZeppelin contract `ERC2771ContextUpgradeable`, which allows a contract to get the original client with `_msgSender()` instead of the fee payer given by `msg.sender` while allowing upgrades on the main contract (see *Deployment via a proxy* above).
+The deployment contracts (`DebtEngineAccessControl` and `DebtEngineOwnable`) support client-side gasless transactions using the [Gas Station Network](https://docs.opengsn.org/#the-problem) (GSN) pattern, the main open standard for transferring fee payment to another account than that of the transaction issuer. The contracts use the OpenZeppelin `ERC2771Context` contract, which allows a contract to get the original client with `_msgSender()` instead of the fee payer given by `msg.sender`.
 
-At deployment, the parameter  `forwarder` inside the constructor has to be set  with the defined address of the forwarder. Please note that the forwarder can not be changed after deployment.
+The abstract base (`DebtEngineBase`) does not depend on `ERC2771Context` directly — it defines a virtual `_msgSender()` that returns `msg.sender` by default. The deployment contracts override this with `ERC2771Context._msgSender()`.
+
+At deployment, the parameter `forwarder` inside the constructor has to be set with the address of the forwarder.
+
+> **Important:** The trusted forwarder address is **immutable** — it is set once at construction time and cannot be changed afterward. If the forwarder contract is compromised or needs to be rotated, a new DebtEngine must be deployed. The forwarder is trusted for every function, including `grantRole`, `revokeRole`, `renounceRole` and ownership transfer: use a forwarder that verifies EIP-712 signatures (e.g. OpenZeppelin `ERC2771Forwarder`). Set the forwarder to `address(0)` to disable meta-transaction support entirely.
 
 Please see the OpenGSN [documentation](https://docs.opengsn.org/contracts/#receiving-a-relayed-call) for more details on what is done to support GSN in the contract.
-
-
 
 ## Dependencies
 
 The toolchain includes the following components, where the versions are the latest ones that we tested:
 
 - Foundry
-- Solidity 0.8.26 (via solc-js)
-- OpenZeppelin Contracts (submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.0.2)
+- Solidity 0.8.27+ (sources use `require(condition, CustomError())`; tested with solc 0.8.33)
+- OpenZeppelin Contracts (submodule) v5.x
 - Tests
-  - [CMTAT v2.5.0-rc0](https://github.com/CMTA/CMTAT/releases/tag/v2.5.0-rc0)
-  - OpenZeppelin Contracts Upgradeable(submodule) [v5.0.2](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/releases/tag/v5.0.2)
+  - [CMTAT v3.0.0](https://github.com/CMTA/CMTAT)
+  - OpenZeppelin Contracts Upgradeable (submodule) v5.x
 
-The CMTAT contracts and the OpenZeppelin library are included as a submodule of the present repository.
+The CMTAT contracts and the OpenZeppelin library are included as submodules of the present repository.
 
 ## Tools
 
-### Prettier
+### Format
 
 ```bash
-npx prettier --write --plugin=prettier-plugin-solidity 'src/**/*.sol'
+forge fmt
 ```
 
-### Slither
+### Static analysis
+
+Reports and their triage are listed in [doc/tools/AUDIT_OVERVIEW.md](./doc/tools/AUDIT_OVERVIEW.md).
+
+| Version | Slither | Aderyn |
+|---|---|---|
+| v0.3.0 | [report](./doc/tools/v0.3.0/slither-report.md) · [feedback](./doc/tools/v0.3.0/slither-report-feedback.md) — 0 High / 0 Medium / 0 Low / 2 Info, nothing to fix | [report](./doc/tools/v0.3.0/aderyn-report.md) · [feedback](./doc/tools/v0.3.0/aderyn-report-feedback.md) — 0 High / 7 Low, nothing to fix |
+
+#### Slither
 
 ```bash
-slither .  --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std" > slither-report.md
+slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts|test|CMTAT|forge-std|script" > doc/tools/v0.3.0/slither-report.md
+```
+
+`--compile-force-framework foundry` is needed because the repository also has a `hardhat.config.js`. Slither runs `forge clean` before compiling. If the local `slither` cannot start (e.g. a user install for an older Python), `uvx --from slither-analyzer slither ...` runs it in an isolated environment.
+
+#### Aderyn
+
+```bash
+aderyn -x mocks --output doc/tools/v0.3.0/aderyn-report.md
 ```
 
 ### Surya
 
-See [./doc/script](./doc/script)
+Run the 3 scripts in [./doc/script](./doc/script); the output is written to [./doc/surya](./doc/surya).
+
+### Hardhat
+
+`hardhat.config.js` compiles `src/` with Hardhat 2 and the same settings as `foundry.toml` (solc 0.8.33, optimizer 200 runs, `prague`). Imports are resolved from the Foundry remappings by `@nomicfoundation/hardhat-foundry`, so `forge` must be installed. Tests and scripts stay in Foundry.
+
+```bash
+npm install
+npm run compile:hardhat   # artifacts in artifacts/, cache in cache_hardhat/
+```
+
+The runtime bytecode is identical to Foundry's except for the trailing metadata hash.
+
+### Deployment
+
+Two Foundry scripts, configured with environment variables (see the [deployment guide](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md#deployment-scripts)):
+
+```bash
+# Deploy the engine (ENGINE_VARIANT=access-control|ownable, ENGINE_ADMIN, FORWARDER, DEBT_MANAGER, CREDIT_EVENTS_MANAGER)
+forge script script/DeployDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+# Connect a CMTAT v3.0.0 debt token (TOKEN, DEBT_ENGINE); refuses if the engine has no record for the token
+forge script script/ConnectDebtEngine.s.sol --rpc-url $RPC_URL --account <keystore> --broadcast
+```
 
 ### Foundry
 
-Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.
+#### Build
 
-Foundry consists of:
+```shell
+forge build
+```
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+#### Test
 
-#### Documentation
+```shell
+forge test
+```
 
-[https://book.getfoundry.sh/](https://book.getfoundry.sh/)
-
-#### Usage
-
-##### Coverage
+#### Coverage
 
 ```bash
-$ forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage
+forge coverage --report lcov --report-file doc/coverage/lcov.info --no-match-coverage "test/|script/" && genhtml doc/coverage/lcov.info --branch-coverage --output-dir doc/coverage/coverage
 ```
 
-##### Gas report
+#### Gas report
 
 ```bash
-$ forge test --gas-report
-```
-
-##### Build
-
-```shell
-$ forge build
-```
-
-##### Test
-
-```shell
-$ forge test
-```
-
-##### Format
-
-```shell
-$ forge fmt
-```
-
-##### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-##### Anvil
-
-```shell
-$ anvil
-```
-
-##### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-##### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-##### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+forge test --gas-report
 ```
 
 ## Intellectual property
 
-The code is copyright (c) Capital Market and Technology Association, 2018-2024, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).
-
+The code is copyright (c) Capital Market and Technology Association, 2018-2026, and is released under [Mozilla Public License 2.0](https://github.com/CMTA/CMTAT/blob/master/LICENSE.md).

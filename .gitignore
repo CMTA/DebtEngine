@@ -3,6 +3,9 @@
 # Compiler files
 cache/
 out/
+# Hardhat build output
+/artifacts/
+/cache_hardhat/
 
 # Ignores development broadcast logs
 !/broadcast
@@ -16,3 +19,6 @@ docs/
 .env
 
 .vscode/
+
+# Drafts: local working notes (feedback, instructions, scratch files), never committed
+/draft/

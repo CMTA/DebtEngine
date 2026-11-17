@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "compile:hardhat": "hardhat compile",
+    "clean:hardhat": "hardhat clean"
+  },
   "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.2.1",
+    "hardhat": "^2.29.2",
     "prettier-plugin-solidity": "^1.4.1",
     "surya": "^0.4.11"
   }

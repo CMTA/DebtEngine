@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
-contract DebtEngineInvariantStorage {
-    // CreditEvents
-    bytes32 public constant CREDIT_EVENTS_MANAGER_ROLE =
-        keccak256("CREDIT_EVENTS_MANAGER_ROLE");
-
-    // DebtModule
-    bytes32 public constant DEBT_MANAGER_ROLE = keccak256("DEBT_MANAGER_ROLE");
-
-    // custom error
+abstract contract DebtEngineInvariantStorage {
     error AdminWithAddressZeroNotAllowed();
+    error BatchSizeTooLarge(uint256 size, uint256 maxSize);
     error InvalidInputLength();
+    error SmartContractWithAddressZeroNotAllowed();
 }
