@@ -64,7 +64,7 @@ test/
 ├── DebtEngineAccessControl.t.sol         # role-specific tests for the RBAC variant
 ├── DebtEngineOwnable.t.sol               # owner-specific tests for the Ownable variant (incl. ERC-165 / ERC-173)
 ├── DebtEngineHarness.t.sol               # test-only engine: proves public functions stay `virtual`, covers the base `_msgSender()`
-├── DebtEngineThreatModel.t.sol           # security-analysis tests: PoCs for AUDIT/RESULT.md findings, fuzzed access-control and set/clear model
+├── DebtEngineThreatModel.t.sol           # security-audit tests: PoCs for the CLAUDE_AUDIT.md findings, fuzzed access-control and set/clear model
 ├── DeployGuideCMTATv3.0.0.t.sol          # runs every step of doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md against CMTAT v3.0.0
 └── script/DeployScripts.t.sol            # tests for the deployment scripts
 script/
@@ -85,7 +85,7 @@ script/
 - `doc/tools/AUDIT_OVERVIEW.md` — index of every analysis (static analysis, AI reviews, coverage) with their results.
 - `doc/tools/<version>/` — tool reports per release: `slither-report.md` / `aderyn-report.md` with their `*-feedback.md` triage, the AI-assisted code-quality review `CLAUDE_ANALYSIS.md` and the published security audit `CLAUDE_AUDIT.md` (currently `doc/tools/v0.3.0/`).
 - `doc/script/` — Surya scripts; output in `doc/surya/` (graph, inheritance, report).
-- `AUDIT/` — working deliverables of the v0.3.0 security analysis (published version: `doc/tools/v0.3.0/CLAUDE_AUDIT.md`): `THREAT_MODEL.md` (actors, threat IDs, invariants), `TEST_IMPROVEMENT.md`, `RESULT.md` (findings with PoCs and fix code).
+- `doc/tools/v0.3.0/CLAUDE_AUDIT.md` — published security audit of v0.3.0 (findings, invariants, access-control verification, remediation). Its working files (threat model, test plan, raw results) are local drafts in `draft/AUDIT/`, not committed.
 - `lib/` — git submodules (do not edit).
 - `draft/` — local, git-ignored folder for working notes and scratch files (e.g. `FEEDBACK.md`, `INSTRUCTION.md`). Put drafts there, never at the root; never cite a `draft/` file from a committed file (code, docs, changelog), since readers of the repository cannot open it.
 

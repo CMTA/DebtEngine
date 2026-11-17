@@ -149,13 +149,13 @@ Commit: to be added on release
 - Add ERC-165 / ERC-173 tests for `DebtEngineOwnable`, including `OwnershipTransferred` at deployment
 - Add `DebtEngineHarness`, a test-only engine that overrides public functions (so removing `virtual` breaks the build) and covers the base `_msgSender()`
 
-## v0.2.0
+## v0.2.0 - 2024/09/09
 
 Commit: `f6fb806b5f9b2ed7987500bb48bf8ea16346e85b`
 
 - Add ERC-2771 support
 
-## v0.1.0
+## v0.1.0 - 2024/09/03
 
 Commit: `272c97e7953834794df8e0f32346236e6de9c7cd`
 
