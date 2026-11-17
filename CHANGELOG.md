@@ -94,6 +94,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 
 ### Fixed
 
+- `clearDebt` / `clearCreditEvents` now reject `address(0)` with `SmartContractWithAddressZeroNotAllowed`, like `setDebt` / `setCreditEvents` (finding F-4 of the security audit); previously they accepted it and emitted a `*Cleared` event for `address(0)`
 - Fix NatSpec comments (`/*` to `/**`, self-referencing batch docs)
 - Fix function modifier ordering (`internal view override`)
 
@@ -120,7 +121,7 @@ Branch: `dev` (not yet released, commit hash to be added on release)
 - Document that `MAX_BATCH_SIZE` is a ceiling and that the mainnet per-transaction gas cap (EIP-7825) limits batches first (NatSpec and README)
 - Surya scripts now write to `doc/surya` and can be run from any directory; diagrams and reports regenerated for the new contracts
 - Move the tool reports to a per-release directory, `doc/tools/v0.3.0/` (Slither, new Aderyn report, code-quality review `CLAUDE_ANALYSIS.md`); remove the earlier draft AI reviews
-- Refresh the static analysis and coverage for v0.3.0: Slither 0.11.6 (0 High / 0 Medium / 0 Low / 2 Info) and Aderyn 0.6.5 (0 High / 7 Low), each with a feedback file triaging every finding (nothing to fix), a new audit overview (`doc/tools/AUDIT_OVERVIEW.md`), and coverage regenerated for the production sources (94.81% lines, 100% branches)
+- Refresh the static analysis and coverage for v0.3.0: Slither 0.11.6 (0 High / 0 Medium / 0 Low / 2 Info) and Aderyn 0.6.5 (0 High / 7 Low), each with a feedback file triaging every finding (nothing to fix), a new audit overview (`doc/tools/AUDIT_OVERVIEW.md`), and coverage regenerated for the production sources (94.94% lines, 100% branches)
 - Add agent guide (`CLAUDE.md` / `AGENTS.md`)
 - Adapt the release checklist to this project's commands and directories
 

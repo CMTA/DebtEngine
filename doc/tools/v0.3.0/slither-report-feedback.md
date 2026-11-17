@@ -7,7 +7,7 @@ Report: [slither-report.md](./slither-report.md) · Overview: [../AUDIT_OVERVIEW
 | Tool | Slither 0.11.6 |
 | Command | `slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts\|test\|CMTAT\|forge-std\|script"` |
 | Scope | `src/` (5 files); mocks: none in the project; dependencies (`lib/`), tests and `script/` excluded |
-| Commit | `3b86328`, 2026-11-17 |
+| Commit | `3b86328` + the F-4 fix, 2026-11-17 (re-run after the fix: same findings) |
 
 ## Executive triage
 

@@ -141,7 +141,8 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
     /**
      * @notice Deletes the debt record of `smartContract_`; `hasDebt` returns false afterwards
      * and `debt(smartContract_)` returns the zero struct, as before any record was set.
-     * @dev Clearing a contract that has no record succeeds and still emits {DebtCleared}.
+     * @dev Reverts with {SmartContractWithAddressZeroNotAllowed} for `address(0)`. Clearing a contract that has
+     * no record succeeds and still emits {DebtCleared}.
      */
     function clearDebt(address smartContract_) external virtual onlyDebtManager {
         _clearDebt(smartContract_);
@@ -150,7 +151,8 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
     /**
      * @notice Deletes the credit events of `smartContract_`; `hasCreditEvents` returns false afterwards
      * and `creditEvents(smartContract_)` returns the zero struct, as before any record was set.
-     * @dev Clearing a contract that has no record succeeds and still emits {CreditEventsCleared}.
+     * @dev Reverts with {SmartContractWithAddressZeroNotAllowed} for `address(0)`. Clearing a contract that has
+     * no record succeeds and still emits {CreditEventsCleared}.
      */
     function clearCreditEvents(address smartContract_) external virtual onlyCreditEventsManager {
         _clearCreditEvents(smartContract_);
@@ -183,19 +185,22 @@ abstract contract DebtEngineBase is IDebtEngine, DebtEngineInvariantStorage, Ver
     }
 
     /**
-     * @dev Single delete path for debt: removes the record and its "set" flag, emits {DebtCleared}.
+     * @dev Single delete path for debt: rejects `address(0)` (as `_setDebt` does), removes the record
+     * and its "set" flag, emits {DebtCleared}.
      */
     function _clearDebt(address smartContract_) internal virtual {
+        require(smartContract_ != address(0), SmartContractWithAddressZeroNotAllowed());
         delete _debts[smartContract_];
         delete _debtSet[smartContract_];
         emit DebtCleared(smartContract_);
     }
 
     /**
-     * @dev Single delete path for credit events: removes the record and its "set" flag,
-     * emits {CreditEventsCleared}.
+     * @dev Single delete path for credit events: rejects `address(0)` (as `_setCreditEvents` does),
+     * removes the record and its "set" flag, emits {CreditEventsCleared}.
      */
     function _clearCreditEvents(address smartContract_) internal virtual {
+        require(smartContract_ != address(0), SmartContractWithAddressZeroNotAllowed());
         delete _creditEvents[smartContract_];
         delete _creditEventsSet[smartContract_];
         emit CreditEventsCleared(smartContract_);

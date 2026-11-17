@@ -168,17 +168,18 @@ contract DebtEngineThreatModelTest is Test, DebtEngineInvariantStorage {
               DATA-2 — clear accepts address(0) (F-4)
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice DATA-2 / F-4: clear functions accept address(0), unlike the setters, and emit an event.
-    function testClearAcceptsAddressZero() public {
-        vm.startPrank(admin);
-        vm.expectEmit(true, false, false, false, address(rbac));
-        emit DebtCleared(address(0));
-        rbac.clearDebt(address(0));
-
-        vm.expectEmit(true, false, false, false, address(rbac));
-        emit CreditEventsCleared(address(0));
-        rbac.clearCreditEvents(address(0));
-        vm.stopPrank();
+    /// @notice DATA-2 / F-4 (fixed): clear functions reject address(0), like the setters, in both variants.
+    /// Inverted from the PoC that asserted they accepted it.
+    function testCannotClearAddressZero() public {
+        DebtEngineBase[2] memory engines = [DebtEngineBase(rbac), DebtEngineBase(owned)];
+        for (uint256 i = 0; i < engines.length; ++i) {
+            vm.startPrank(admin);
+            vm.expectRevert(SmartContractWithAddressZeroNotAllowed.selector);
+            engines[i].clearDebt(address(0));
+            vm.expectRevert(SmartContractWithAddressZeroNotAllowed.selector);
+            engines[i].clearCreditEvents(address(0));
+            vm.stopPrank();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

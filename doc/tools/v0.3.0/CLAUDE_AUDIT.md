@@ -31,7 +31,7 @@
 
 **0 Critical, 0 High, 0 Medium, 0 Low, 4 Info.**
 
-The engine holds no funds and makes no external calls. Every state-changing function is gated by an authorization hook, and fuzzing over arbitrary callers in both deployment variants found no unauthorized write path. The Info findings concern role bookkeeping when an account holds `DEFAULT_ADMIN_ROLE`, freezing on renounce, one consistency nit, and the documentation. Three of the four are resolved by documentation; one is open, by choice.
+The engine holds no funds and makes no external calls. Every state-changing function is gated by an authorization hook, and fuzzing over arbitrary callers in both deployment variants found no unauthorized write path. The Info findings concern role bookkeeping when an account holds `DEFAULT_ADMIN_ROLE`, freezing on renounce, one consistency nit, and the documentation. Three of the four are resolved by documentation and one (F-4) by a code fix applied after the audit.
 
 **Cleared hypotheses.** Each of these would have been High or Medium; each was tested and does not hold:
 
@@ -50,7 +50,7 @@ The test suite went from 124 to **136** tests, all passing. Two of the new tests
 |---|---|---|---|---|---|
 | F-1 | Implicit-admin `hasRole` override breaks role grant / revoke bookkeeping | Info (downgraded from Low) | Documented; code fix proposed | `src/deployment/DebtEngineAccessControl.sol:41-53` | `testPoC_F1_GrantRoleToAdminIsSilentNoOp`, `testPoC_F1_RevokeRoleFromAdminEmitsButKeepsPower`, `testPoC_F1_AdminHandoverDropsSelfGrantedRole` |
 | F-3 | Renouncing the last admin freezes role management | Info | Documented (by design) | OZ `AccessControl.renounceRole` | `testLastAdminRenounceFreezesRoles` |
-| F-4 | `clearDebt` / `clearCreditEvents` accept `address(0)` | Info | Open (fix proposed) | `src/DebtEngineBase.sol:188-202` | `testClearAcceptsAddressZero` |
+| F-4 | `clearDebt` / `clearCreditEvents` accept `address(0)` | Info | ✅ Fixed | `src/DebtEngineBase.sol:188-202` | `testCannotClearAddressZero` (inverted PoC) |
 | F-7 | README RBAC role table omits the clear functions | Info | Fixed (documentation) | `README.md` | — |
 
 IDs F-2, F-5 and F-6 were dismissed in the adversarial review and are recorded in section 7. Line numbers refer to the audited commit `705208b`.
@@ -197,17 +197,20 @@ function _clearDebt(address smartContract_) internal virtual {
 }
 ```
 
-- **Fix code — Proposed, not implemented.** Pure consistency; it adds a revert path to the clear functions, which is a behaviour change.
+- **Fix code — Implemented** (after the audit, before release): `src/DebtEngineBase.sol:191-192` and `:202-203` (`_clearDebt`, `_clearCreditEvents`), so `clearDebt` / `clearCreditEvents` now revert with `SmartContractWithAddressZeroNotAllowed`, like the setters. Cost: +78 runtime bytes per deployment contract, about +28 gas per clear call.
 
   ```solidity
+  // src/DebtEngineBase.sol:191-196
   function _clearDebt(address smartContract_) internal virtual {
       require(smartContract_ != address(0), SmartContractWithAddressZeroNotAllowed());
       delete _debts[smartContract_];
       delete _debtSet[smartContract_];
       emit DebtCleared(smartContract_);
   }
-  // same first line in _clearCreditEvents
+  // same first line in _clearCreditEvents (:202-203)
   ```
+
+  Verified by `testCannotClearAddressZero` (both variants, both clear functions), inverted from the PoC that asserted the old behaviour; with the two checks removed, it is the one test that fails.
 
 ### F-7. README RBAC role table omits the clear functions — Info
 
@@ -222,7 +225,7 @@ function _clearDebt(address smartContract_) internal virtual {
 | I-1 | Only an authorized account changes `_debts`, `_creditEvents` or the `has*` flags | ✅ | `testFuzz_OnlyAuthorizedCanWrite` (256 runs; six writers × two variants, with the variant's specific error) |
 | I-2 | `hasDebt(a)` is true iff the last write to `a` was a set | ✅ | `testFuzz_SetClearSequenceMatchesModel` (256 runs, sequences of up to 32 set / clear operations checked against a model) |
 | I-3 | `debt(a)` equals the last record set, or the zero struct after a clear | ✅ | same, plus `testFuzz_SetDebtRoundTrip` / `testFuzz_SetCreditEventsRoundTrip` |
-| I-4 | No record is stored under `address(0)` | ✅ | `testCannotSetDebtForAddressZero`, `testCannotSetCreditEventsForAddressZero`, batch variants; F-4 only emits an event |
+| I-4 | No record is stored under `address(0)`, and no clear accepts it | ✅ | `testCannotSetDebtForAddressZero`, `testCannotSetCreditEventsForAddressZero`, batch variants, `testCannotClearAddressZero` (F-4 fixed) |
 | I-5 | A debt manager cannot change credit events, and vice versa | ✅ | `testDebtManagerCannotSetCreditEvents`, `testCreditEventsManagerCannotSetDebt`, `testDebtManagerCannotClearCreditEvents`, `testCreditEventsManagerCannotClearDebt` |
 | I-6 | Without the trusted forwarder, `_msgSender() == msg.sender` | ✅ | `testUntrustedCallerCannotSpoofSender`, `testBaseMsgSenderIsMsgSender` |
 
@@ -251,7 +254,7 @@ function _clearDebt(address smartContract_) internal virtual {
 
 ## 6. Remediation — what was implemented
 
-All remediation landed in commit `e7be94b` and is **documentation only; contract behaviour is unchanged.**
+The documentation remediation landed in commit `e7be94b`; F-4 is the only code change, applied afterwards.
 
 | Finding | Status | What changed | Verified by |
 |---|---|---|---|
@@ -259,10 +262,10 @@ All remediation landed in commit `e7be94b` and is **documentation only; contract
 | F-3 | ⚠️ Documented, behaviour unchanged | README RBAC note: renouncing the last admin freezes role management | `testLastAdminRenounceFreezesRoles` |
 | F-7 | ✅ Fixed (documentation) | README RBAC role table lists `clearDebt` / `clearCreditEvents` | — |
 | Forwarder trust (dismissed F-2) | ⚠️ Documented | README "Gasless support": the forwarder is trusted for every function, including role management and ownership transfer; use a signature-verifying forwarder or `address(0)` | `testPoC_F2_ForwarderCanGrantAdminRole`, `testPoC_F2_ForwarderCanStartOwnershipTransfer` |
-| F-4 | ⬜ Open | Not applied: optional, adds a revert path | `testClearAcceptsAddressZero` asserts the current behaviour |
+| F-4 | ✅ Fixed (code) | `_clearDebt` / `_clearCreditEvents` reject `address(0)` with `SmartContractWithAddressZeroNotAllowed` (`src/DebtEngineBase.sol:192`, `:203`). Behaviour change: clearing `address(0)` now reverts instead of emitting an event | `testCannotClearAddressZero` (inverted PoC; fails with the checks removed) |
 | F-1 Option A | ⬜ Declined for now | A design decision for the maintainers (compiler bump, divergence from CMTAT) | Compiled and tested in a scratch copy only |
 
-No breaking change was introduced.
+No breaking change to the ABI or storage was introduced; F-4 adds a revert path to `clearDebt` / `clearCreditEvents` for `address(0)` only.
 
 ## 7. Potential improvements (open backlog)
 
@@ -271,9 +274,8 @@ These are hardening and documentation items, not vulnerabilities.
 | # | Improvement | Addresses | Effort | Breaking? | Priority |
 |---|---|---|---|---|---|
 | 1 | Adopt F-1 Option A so that role bookkeeping records explicit membership | F-1 | Small (code and tests exist) | Behavioural: revoking from an admin becomes a no-op; needs solc ≥ 0.8.28, Cancun+ | **Design decision** |
-| 2 | Add the zero-address check to `_clearDebt` / `_clearCreditEvents` | F-4 | Trivial | Adds a revert path | Low |
-| 3 | README integration note: write the engine record before `setDebtEngine` on the token; integrators use `hasDebt(token)` to tell "empty" from "unset" | dismissed F-5 | Trivial | No | Low |
-| 4 | Re-run Slither once it can run in the review environment, and refresh `doc/tools/v0.3.0/slither-report.md` | tooling | Trivial | No | Low |
+| 2 | README integration note: write the engine record before `setDebtEngine` on the token; integrators use `hasDebt(token)` to tell "empty" from "unset" | dismissed F-5 | Trivial | No | Low |
+| 3 | Re-run Slither once it can run in the review environment, and refresh `doc/tools/v0.3.0/slither-report.md` | tooling | Trivial | No | Low |
 
 - **Item 1** is a choice between two consistent behaviours: today's, which matches CMTAT and is now documented, and exact bookkeeping. Neither is a defect.
 - **Item 3** comes from CMTAT's fallback rule. A CMTAT token that points at the engine returns the engine's answer even when the engine holds no record for it, so the token's own data is hidden. DebtEngine cannot change this.

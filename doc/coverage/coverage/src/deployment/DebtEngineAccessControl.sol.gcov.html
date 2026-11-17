@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2026-11-17 08:19:33</td>
+            <td class="headerValue">2026-11-17 09:48:37</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntry">6</td>
@@ -93,7 +93,7 @@
 <a name="22"><span class="lineNum">      22 </span>                :            : </a>
 <a name="23"><span class="lineNum">      23 </span>                :            :     /* ============ AUTHORIZATION HOOKS ============ */</a>
 <a name="24"><span class="lineNum">      24 </span>                :            : </a>
-<a name="25"><span class="lineNum">      25 </span>                :<span class="lineCov">       4063 :     function _authorizeSetDebt() internal view virtual override onlyRole(DEBT_MANAGER_ROLE) {}</span></a>
+<a name="25"><span class="lineNum">      25 </span>                :<span class="lineCov">       4084 :     function _authorizeSetDebt() internal view virtual override onlyRole(DEBT_MANAGER_ROLE) {}</span></a>
 <a name="26"><span class="lineNum">      26 </span>                :            : </a>
 <a name="27"><span class="lineNum">      27 </span>                :<span class="lineCov">       1057 :     function _authorizeSetCreditEvents() internal view virtual override onlyRole(CREDIT_EVENTS_MANAGER_ROLE) {}</span></a>
 <a name="28"><span class="lineNum">      28 </span>                :            : </a>
@@ -119,8 +119,8 @@
 <a name="48"><span class="lineNum">      48 </span>                :            :         returns (bool)</a>
 <a name="49"><span class="lineNum">      49 </span>                :            :     {</a>
 <a name="50"><span class="lineNum">      50 </span>                :            :         // The Default Admin has all roles</a>
-<a name="51"><span class="lineNum">      51 </span>           [<span class="branchCov" title="Branch 0 was taken 3346 times"> + </span>]:<span class="lineCov">       5285 :         if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {</span></a>
-<a name="52"><span class="lineNum">      52 </span>                :<span class="lineCov">       3346 :             return true;</span></a>
+<a name="51"><span class="lineNum">      51 </span>           [<span class="branchCov" title="Branch 0 was taken 3367 times"> + </span>]:<span class="lineCov">       5306 :         if (AccessControl.hasRole(DEFAULT_ADMIN_ROLE, account)) {</span></a>
+<a name="52"><span class="lineNum">      52 </span>                :<span class="lineCov">       3367 :             return true;</span></a>
 <a name="53"><span class="lineNum">      53 </span>                :            :         }</a>
 <a name="54"><span class="lineNum">      54 </span>                :<span class="lineCov">       1939 :         return AccessControl.hasRole(role, account);</span></a>
 <a name="55"><span class="lineNum">      55 </span>                :            :     }</a>
@@ -129,16 +129,16 @@
 <a name="58"><span class="lineNum">      58 </span>                :            :                            ERC2771</a>
 <a name="59"><span class="lineNum">      59 </span>                :            :     //////////////////////////////////////////////////////////////*/</a>
 <a name="60"><span class="lineNum">      60 </span>                :            : </a>
-<a name="61"><span class="lineNum">      61 </span>                :<span class="lineCov">       5294 :     function _msgSender() internal view virtual override(DebtEngineBase, ERC2771Context, Context) returns (address) {</span></a>
-<a name="62"><span class="lineNum">      62 </span>                :<span class="lineCov">       5294 :         return ERC2771Context._msgSender();</span></a>
+<a name="61"><span class="lineNum">      61 </span>                :<span class="lineCov">       5315 :     function _msgSender() internal view virtual override(DebtEngineBase, ERC2771Context, Context) returns (address) {</span></a>
+<a name="62"><span class="lineNum">      62 </span>                :<span class="lineCov">       5315 :         return ERC2771Context._msgSender();</span></a>
 <a name="63"><span class="lineNum">      63 </span>                :            :     }</a>
 <a name="64"><span class="lineNum">      64 </span>                :            : </a>
 <a name="65"><span class="lineNum">      65 </span>                :<span class="lineNoCov">          0 :     function _msgData() internal view virtual override(ERC2771Context, Context) returns (bytes calldata) {</span></a>
 <a name="66"><span class="lineNum">      66 </span>                :<span class="lineNoCov">          0 :         return ERC2771Context._msgData();</span></a>
 <a name="67"><span class="lineNum">      67 </span>                :            :     }</a>
 <a name="68"><span class="lineNum">      68 </span>                :            : </a>
-<a name="69"><span class="lineNum">      69 </span>                :<span class="lineCov">       5294 :     function _contextSuffixLength() internal view virtual override(ERC2771Context, Context) returns (uint256) {</span></a>
-<a name="70"><span class="lineNum">      70 </span>                :<span class="lineCov">       5294 :         return ERC2771Context._contextSuffixLength();</span></a>
+<a name="69"><span class="lineNum">      69 </span>                :<span class="lineCov">       5315 :     function _contextSuffixLength() internal view virtual override(ERC2771Context, Context) returns (uint256) {</span></a>
+<a name="70"><span class="lineNum">      70 </span>                :<span class="lineCov">       5315 :         return ERC2771Context._contextSuffixLength();</span></a>
 <a name="71"><span class="lineNum">      71 </span>                :            :     }</a>
 <a name="72"><span class="lineNum">      72 </span>                :            : }</a>
 </pre>

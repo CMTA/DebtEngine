@@ -5,7 +5,7 @@
 | Tool | Slither 0.11.6 (run with `uvx --from slither-analyzer`) |
 | Command | `slither . --compile-force-framework foundry --checklist --filter-paths "openzeppelin-contracts\|test\|CMTAT\|forge-std\|script" > doc/tools/v0.3.0/slither-report.md` |
 | Scope | `src/` only (5 files); dependencies, tests and deployment scripts filtered out; the project has no mocks. Scope check: 0 `lib/` paths in the output |
-| Date / commit | 2026-11-17, `3b86328` |
+| Date / commit | 2026-11-17, `3b86328` + the F-4 fix (zero-address check in `_clearDebt` / `_clearCreditEvents`); findings unchanged by the fix |
 | Result | **0 High · 0 Medium · 0 Low · 2 Informational** |
 
 | Detector | Severity | Instances | Assessment |

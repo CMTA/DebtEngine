@@ -6,8 +6,8 @@ Report: [aderyn-report.md](./aderyn-report.md) · Overview: [../AUDIT_OVERVIEW.m
 |---|---|
 | Tool | Aderyn 0.6.5 |
 | Command | `aderyn -x mocks --output doc/tools/v0.3.0/aderyn-report.md` |
-| Scope | `src/` (5 files, 180 nSLOC) from the Foundry config; mocks: none in the project; 0 `lib/` paths in the output |
-| Commit | `3b86328`, 2026-11-17 |
+| Scope | `src/` (5 files, 182 nSLOC) from the Foundry config; mocks: none in the project; 0 `lib/` paths in the output |
+| Commit | `3b86328` + the F-4 fix, 2026-11-17 (re-run after the fix: same findings) |
 
 ## Executive triage
 

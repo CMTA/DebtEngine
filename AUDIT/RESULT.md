@@ -45,7 +45,7 @@ New tests (`test/DebtEngineThreatModel.t.sol`):
 | `testPoC_F2_ForwarderCanGrantAdminRole` | Unit PoC | MTX-2 | 94,350 |
 | `testPoC_F2_ForwarderCanStartOwnershipTransfer` | Unit PoC | MTX-2 | 40,602 |
 | `testForwarderRelaysClearDebt` | Unit | MTX-1 | 105,748 |
-| `testClearAcceptsAddressZero` | Unit | DATA-2 | 67,772 |
+| `testClearAcceptsAddressZero` → `testCannotClearAddressZero` (inverted after the F-4 fix) | Unit | DATA-2 | 67,772 (before inversion) |
 | `testPoC_F5_EngineShadowsTokenLocalDebt` | Integration PoC (real `CMTATStandaloneDebt`) | DATA-3 | 5,396,953 |
 | `testFuzz_OnlyAuthorizedCanWrite` | Fuzz, both variants, six writers | AC-1 / I-1 | 256 runs |
 | `testFuzz_SetClearSequenceMatchesModel` | Fuzz, model check over ≤ 32 ops | I-2 / I-3 | 256 runs |
@@ -59,7 +59,7 @@ New tests (`test/DebtEngineThreatModel.t.sol`):
 | F-1 | Implicit admin breaks role grant/revoke bookkeeping | INFO (was LOW, judge) | Confirmed; docs fixed | `src/deployment/DebtEngineAccessControl.sol:41-53` (at `705208b`; `:43-55` after this run's NatSpec edit) | `openzeppelin-v5` | `testPoC_F1_*` (3) | ✅ |
 | F-2 | Immutable forwarder can perform admin actions | — (was INFO, judge) | NOT-A-FINDING: ERC-2771 trust assumption; README note added | `DebtEngineAccessControl.sol:18`, `DebtEngineOwnable.sol:20` | `openzeppelin-v5` | `testPoC_F2_*` (2) | ✅ |
 | F-3 | Last admin renounce freezes role management | INFO | By-design; README note added | OZ `AccessControl.renounceRole` | `audit-access-control` | `testLastAdminRenounceFreezesRoles` | ✅ |
-| F-4 | Clear functions accept `address(0)` | INFO | Confirmed | `src/DebtEngineBase.sol:188-202` | Independent analysis | `testClearAcceptsAddressZero` | ✅ |
+| F-4 | Clear functions accept `address(0)` | INFO | Fixed after the audit (`testCannotClearAddressZero`) | `src/DebtEngineBase.sol:188-202` | Independent analysis | `testClearAcceptsAddressZero` | ✅ |
 | F-5 | Engine shadows token-local debt once set | — (was INFO, judge) | NOT-A-FINDING: CMTAT behaviour, out of scope; README already notes the empty read after clear | CMTAT `DebtEngineModule.sol:64-71` | `cmtat` | `testPoC_F5_EngineShadowsTokenLocalDebt` | integration |
 | F-6 | Batches hit the EIP-7825 gas cap first | — (was INFO, judge) | NOT-A-FINDING: already documented | `src/DebtEngineBase.sol:23-29` | Independent analysis | v0.3.0 quality review H-1 | ✅ |
 | F-7 | README RBAC role table omits `clearDebt` / `clearCreditEvents` | INFO (found by judge) | Confirmed; fixed | `README.md` role table | Agent judge | — | ✅ |
@@ -222,8 +222,21 @@ function _clearDebt(address smartContract_) internal virtual {
 }
 ```
 
-- **Impact:** none on state (nothing can be stored under `address(0)`); a `DebtCleared(address(0))` event can be emitted (`testClearAcceptsAddressZero`). The NatSpec already says clearing an unset record succeeds.
-- **Fix — Proposed, not implemented** (pure consistency; it adds a revert path): add `require(smartContract_ != address(0), SmartContractWithAddressZeroNotAllowed());` as the first line of `_clearDebt` and `_clearCreditEvents`. Otherwise keep and leave as documented.
+- **Impact:** none on state (nothing can be stored under `address(0)`); a `DebtCleared(address(0))` event could be emitted (PoC `testClearAcceptsAddressZero`, since inverted). The NatSpec already says clearing an unset record succeeds.
+- **Fix code — Implemented** (after the audit, before release): `src/DebtEngineBase.sol:191-192` and `:202-203` (`_clearDebt`, `_clearCreditEvents`), so `clearDebt` / `clearCreditEvents` now revert with `SmartContractWithAddressZeroNotAllowed`, like the setters. Cost: +78 runtime bytes per deployment contract, about +28 gas per clear call.
+
+  ```solidity
+  // src/DebtEngineBase.sol:191-196
+  function _clearDebt(address smartContract_) internal virtual {
+      require(smartContract_ != address(0), SmartContractWithAddressZeroNotAllowed());
+      delete _debts[smartContract_];
+      delete _debtSet[smartContract_];
+      emit DebtCleared(smartContract_);
+  }
+  // same first line in _clearCreditEvents (:202-203)
+  ```
+
+  Verified by `testCannotClearAddressZero` (both variants, both clear functions), inverted from the PoC that asserted the old behaviour; with the two checks removed, it is the one test that fails.
 
 ### F-5. Pointing a token at the engine hides the token's own debt — NOT-A-FINDING (judge)
 
@@ -279,7 +292,7 @@ Already documented in `MAX_BATCH_SIZE`'s NatSpec (`src/DebtEngineBase.sol:23-29`
 | I-1 only authorized accounts change records | ✅ | `testFuzz_OnlyAuthorizedCanWrite` (256 runs, both variants) |
 | I-2 `hasDebt` ⇔ last write was a set | ✅ | `testFuzz_SetClearSequenceMatchesModel` (256 runs) |
 | I-3 `debt()` = last record or zero struct | ✅ | same, plus `testFuzz_SetDebtRoundTrip` |
-| I-4 no record under `address(0)` | ✅ | `testCannotSet*ForAddressZero`; F-4 only emits an event |
+| I-4 no record under `address(0)` | ✅ | `testCannotSet*ForAddressZero`; clears too since the F-4 fix (`testCannotClearAddressZero`) |
 | I-5 role separation | ✅ | `test*ManagerCannot*` |
 | I-6 `_msgSender() == msg.sender` without forwarder | ✅ | `testUntrustedCallerCannotSpoofSender`, `testBaseMsgSenderIsMsgSender` |
 
@@ -300,7 +313,7 @@ Already documented in `MAX_BATCH_SIZE`'s NatSpec (`src/DebtEngineBase.sol:23-29`
 |---|---|---|---|
 | 1 | F-1: keep Option C (documented runbook), or adopt Option A for exact role bookkeeping | `src/deployment/DebtEngineAccessControl.sol` (`hasRole`, new `_grantRole` / `_revokeRole`) | Option C implemented (README, NatSpec); Option A proposed, compiled and tested in a scratch copy |
 | 2 | F-3, F-7 and the forwarder note (F-2) | `README.md` | Implemented |
-| 3 | F-4: optional zero-address check in `_clearDebt` / `_clearCreditEvents` (adds a revert path) | `src/DebtEngineBase.sol:188`, `:198` | Proposed |
+| 3 | F-4: zero-address check in `_clearDebt` / `_clearCreditEvents` | `src/DebtEngineBase.sol:192`, `:203` | Implemented |
 | 4 | F-5: write the engine record before `setDebtEngine`; integrators use `hasDebt(token)` | `README.md` integration note | Proposed (text in F-5) |
 
 ## Agent judge

@@ -260,7 +260,7 @@ After deployment:
 | `AccessControlUnauthorizedAccount(account, role)` on the engine | The caller lacks `DEBT_MANAGER_ROLE` / `CREDIT_EVENTS_MANAGER_ROLE` | Grant the role from a `DEFAULT_ADMIN_ROLE` holder |
 | `AccessControlUnauthorizedAccount(account, DEBT_ROLE)` on the token | `setDebtEngine` called by an account without the token's `DEBT_ROLE` | Call it from the token admin or a `DEBT_ROLE` holder |
 | `OwnableUnauthorizedAccount(account)` | Not the owner, or ownership not yet accepted | Call from the owner; `acceptOwnership()` from the pending owner |
-| `SmartContractWithAddressZeroNotAllowed()` | A record for `address(0)` | Pass the token address |
+| `SmartContractWithAddressZeroNotAllowed()` | A set or clear for `address(0)` | Pass the token address |
 | `InvalidInputLength()` / `BatchSizeTooLarge(size, 500)` | Batch arrays of different lengths / too many entries | Fix the arrays; split the batch |
 | `CMTAT_DebtEngineModule_SameValue()` | `setDebtEngine` with the engine already set | Nothing to do |
 | A manager role granted to the admin does not appear in `getRoleMember` | Implicit admin membership (section 8) | Grant it after the account stops being admin |

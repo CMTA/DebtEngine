@@ -14,7 +14,7 @@
 | v0.3.0 | Claude code-quality review (AI-assisted) | [CLAUDE_ANALYSIS.md](./v0.3.0/CLAUDE_ANALYSIS.md) | in the report |
 | v0.3.0 | Test coverage (`forge coverage`) | [doc/coverage](../coverage/coverage/index.html) | — |
 
-## Static analysis, v0.3.0 (commit `3b86328`)
+## Static analysis, v0.3.0 (commit `3b86328` + the F-4 fix)
 
 | Tool | High | Medium | Low | Info | Relevant to fix? |
 |---|---|---|---|---|---|
@@ -25,11 +25,11 @@
 
 | File | Lines | Branches | Functions |
 |---|---|---|---|
-| `DebtEngineBase.sol` | 100% (50/50) | 100% (12/12) | 100% (19/19) |
+| `DebtEngineBase.sol` | 100% (52/52) | 100% (16/16) | 100% (19/19) |
 | `deployment/DebtEngineAccessControl.sol` | 86.67% (13/15) | 100% (3/3) | 85.71% (6/7) |
 | `deployment/DebtEngineOwnable.sol` | 80.00% (8/10) | 100% (0/0) | 83.33% (5/6) |
 | `modules/VersionModule.sol` | 100% (2/2) | 100% (0/0) | 100% (1/1) |
-| **Total** | **94.81% (73/77)** | **100% (15/15)** | **93.94% (31/33)** |
+| **Total** | **94.94% (75/79)** | **100% (19/19)** | **93.94% (31/33)** |
 
 The only uncovered functions are the two `_msgData` overrides, which the compiler requires and nothing calls. 154 tests, including fuzz tests and mutation-verified access-control tests.
 
@@ -41,7 +41,7 @@ Claude security audit, v0.3.0: **0 Critical, 0 High, 0 Medium, 0 Low, 4 Info.**
 |---|---|---|---|
 | F-1 | Info | An admin passes every role check, so granting it a manager role is a no-op and revoking one emits `RoleRevoked` without effect | Documented (runbook in README and the deployment guide); code fix proposed |
 | F-3 | Info | Renouncing the last admin freezes role management | Documented (by design) |
-| F-4 | Info | `clearDebt` / `clearCreditEvents` accept `address(0)` | Open (fix proposed) |
+| F-4 | Info | `clearDebt` / `clearCreditEvents` accepted `address(0)` | Fixed (code): they now revert with `SmartContractWithAddressZeroNotAllowed` |
 | F-7 | Info | README role table omitted the clear functions | Fixed |
 
 The code-quality review changes that landed in v0.3.0 (single write paths, `virtual` public API, `require` guards, ERC-165 for the Ownable variant, documented batch gas limits) are listed in its disposition table.
