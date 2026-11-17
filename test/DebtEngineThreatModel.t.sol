@@ -17,8 +17,9 @@ import {CMTATStandaloneDebt} from "CMTAT/deployment/debt/CMTATStandaloneDebt.sol
 import {ICMTATConstructor} from "CMTAT/interfaces/technical/ICMTATConstructor.sol";
 
 /**
- * @dev Tests derived from AUDIT/THREAT_MODEL.md (threat IDs in each @notice).
- * PoC tests assert the current behaviour of a finding in AUDIT/RESULT.md.
+ * @dev Tests derived from the v0.3.0 security audit, doc/tools/v0.3.0/CLAUDE_AUDIT.md
+ * (each test's notice names its finding ID F-n or threat ID). PoC tests assert the current behaviour of a finding;
+ * the F-4 PoC was inverted into a regression test once the fix landed.
  */
 contract DebtEngineThreatModelTest is Test, DebtEngineInvariantStorage {
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
