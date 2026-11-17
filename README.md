@@ -122,7 +122,9 @@ The variant is chosen at deployment: the two contracts are not interchangeable a
 >
 > Granting or revoking a manager role on an account that holds `DEFAULT_ADMIN_ROLE` has no effect: the grant is not recorded, and a revocation (or `renounceRole`) emits `RoleRevoked` while the account keeps the power. When handing admin over, renounce `DEFAULT_ADMIN_ROLE` first and have the new admin grant the manager role afterwards.
 >
-> If the last `DEFAULT_ADMIN_ROLE` holder renounces, roles can no longer be granted or revoked.
+> If the last `DEFAULT_ADMIN_ROLE` holder renounces, roles can no longer be granted or revoked, and only existing managers can still write records.
+>
+> **Admin handover** is a plain role change, with no delay and no acceptance step: (1) the current admin calls `grantRole(DEFAULT_ADMIN_ROLE, newAdmin)`; (2) check that `newAdmin` is correct and controlled, e.g. by having it perform an admin action; (3) only then does the old admin call `renounceRole(DEFAULT_ADMIN_ROLE, oldAdmin)`. Doing step 3 before step 1, or granting to a mistyped address and then renouncing, leaves the contract without an admin. If the old admin should stay a manager, the new admin grants it the manager role after step 3 (a grant made before would be lost). Full runbook: [deployment guide, section 8](./doc/technical/guides/DEPLOY_DEBT_ENGINE_CMTAT_V3.0.0.md).
 
 ### DebtEngineOwnable (Single Owner)
 

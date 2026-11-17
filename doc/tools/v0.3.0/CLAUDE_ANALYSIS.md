@@ -166,13 +166,15 @@ The production-source scan for documentation paths, test names and review IDs re
 
 EIP-7825 (Final, part of Fusaka) caps a transaction at 16,777,216 gas. Measured in the suite (AccessControl variant): one realistic debt record costs about 400k gas (`setDebt` 458,284 gas; a second record in `setDebtBatch` adds 401,580), and `testSetCreditEventsBatchAtMaxSize` (500 short records) costs 35,655,870 gas, about 71k per record. Even 500 *empty* debt records cost 36.4M gas. So on mainnet a batch holds roughly 40 debt records or 230 credit-events records; the cap of 500 can never be reached there. Not a vulnerability (an oversized batch reverts out of gas, nothing is written). Documented in the NatSpec of `MAX_BATCH_SIZE` (`src/DebtEngineBase.sol:21`–`27`) and the README. Whether to lower the value is in *Outstanding*.
 
-### H-2. Records cannot be removed — ⬜ decide (U-1)
+### H-2. Records cannot be removed — ✅ fixed (U-1)
 
-Once set, `hasDebt` / `hasCreditEvents` stay `true`; a record can only be overwritten. See U-1.
+Once set, `hasDebt` / `hasCreditEvents` stayed `true`; a record could only be overwritten. Fixed by `clearDebt` / `clearCreditEvents` (U-1).
 
 ### H-3. Renouncing freezes the registry — ⬜ keep
 
 `renounceOwnership` (Ownable variant) or renouncing `DEFAULT_ADMIN_ROLE` with no other manager leaves every record permanently frozen. For a registry, freezing can be intended (immutable records); it is OpenZeppelin's behaviour and is documented in the README.
+
+**Decision (maintainer, 2026-11-17): keep the current admin model.** The implicit super-admin in `hasRole` stays (same model as CMTAT's `AccessControlModule`). OpenZeppelin `AccessControlDefaultAdminRules` (single admin, delayed two-step handover and renounce) was considered and **rejected as too complex** for this contract: it changes the constructor, adds a delay parameter and six overrides to combine with `AccessControlEnumerable`. The residual risk stays operational: transfer the admin role with `grantRole` to the new admin **before** `renounceRole` / `revokeRole` on the old one, and never renounce the last admin unless freezing the records is intended.
 
 ### H-4. Caller-based getters through a forwarder — ⬜ keep
 
